@@ -1,0 +1,358 @@
+'use server'
+
+import { revalidatePath } from 'next/cache'
+import { z } from 'zod'
+import * as asaas from './asaas'
+import type { Cliente, Contrato, TemplateContrato } from './db'
+import { moldurarContrato, htmlParaPdf } from './pdf'
+import { supabaseServidor } from './supabase'
+import { formatBRL, parseParaCentavos, proximoVencimento } from './money'
+import { somenteDigitos, validaDocumento } from './validacao'
+import { aplicarMergeTags, criarDocumento } from './zapsign'
+import { env } from './env'
+
+export type Resultado = { ok: true; id?: string } | { ok: false; erro: string }
+
+const esquemaCliente = z.object({
+  nome: z.string().min(2, 'Informe o nome ou razão social.'),
+  nome_fantasia: z.string().optional(),
+  documento: z.string().optional(),
+  email: z.string().email('E-mail inválido.').optional().or(z.literal('')),
+  telefone: z.string().optional(),
+  whatsapp: z.string().optional(),
+  observacoes: z.string().optional(),
+})
+
+function texto(formData: FormData, campo: string): string {
+  return String(formData.get(campo) ?? '').trim()
+}
+
+/**
+ * Fluxo 1 do blueprint: cria o cliente no Master e espelha no Asaas.
+ * Se o Asaas falhar, o cliente continua salvo — o espelho pode ser
+ * refeito depois pela ficha; a operação nunca fica bloqueada por integração.
+ */
+export async function salvarCliente(_estado: unknown, formData: FormData): Promise<Resultado> {
+  const analise = esquemaCliente.safeParse({
+    nome: texto(formData, 'nome'),
+    nome_fantasia: texto(formData, 'nome_fantasia'),
+    documento: texto(formData, 'documento'),
+    email: texto(formData, 'email'),
+    telefone: texto(formData, 'telefone'),
+    whatsapp: texto(formData, 'whatsapp'),
+    observacoes: texto(formData, 'observacoes'),
+  })
+  if (!analise.success) {
+    return { ok: false, erro: analise.error.issues[0].message }
+  }
+
+  const dados = analise.data
+  const documento = dados.documento ? somenteDigitos(dados.documento) : ''
+  if (documento && !validaDocumento(documento)) {
+    return { ok: false, erro: 'CPF/CNPJ inválido.' }
+  }
+
+  const supabase = await supabaseServidor()
+  const { data: cliente, error } = await supabase
+    .from('clientes')
+    .insert({
+      nome: dados.nome,
+      nome_fantasia: dados.nome_fantasia || null,
+      documento: documento || null,
+      email: dados.email || null,
+      telefone: dados.telefone || null,
+      whatsapp: dados.whatsapp || null,
+      observacoes: dados.observacoes || null,
+    })
+    .select('id')
+    .single()
+
+  if (error || !cliente) {
+    return { ok: false, erro: error?.message ?? 'Falha ao salvar o cliente.' }
+  }
+
+  try {
+    const noAsaas = await asaas.criarCliente({
+      name: dados.nome,
+      cpfCnpj: documento || undefined,
+      email: dados.email || undefined,
+      mobilePhone: dados.whatsapp || dados.telefone || undefined,
+      externalReference: cliente.id,
+    })
+    await supabase
+      .from('clientes')
+      .update({ asaas_customer_id: noAsaas.id })
+      .eq('id', cliente.id)
+  } catch (erro) {
+    console.error('[asaas] espelho do cliente falhou', erro)
+  }
+
+  revalidatePath('/clientes')
+  return { ok: true, id: cliente.id }
+}
+
+const esquemaContrato = z.object({
+  cliente_id: z.string().uuid('Selecione o cliente.'),
+  frente: z.enum(['digital', 'tecnologia', 'visual', 'comunicacao']),
+  tipo: z.string().min(1, 'Selecione o tipo.'),
+  descricao: z.string().optional(),
+  modo: z.enum(['recorrente', 'parcelado', 'avulso']),
+  valor: z.string().min(1, 'Informe o valor.'),
+  parcelas: z.string().optional(),
+  dia_vencimento: z.string().optional(),
+  inicio: z.string().optional(),
+  fim: z.string().optional(),
+  template_id: z.string().uuid().optional().or(z.literal('')),
+})
+
+/** Cria o contrato em rascunho. A cobrança só nasce depois da assinatura. */
+export async function salvarContrato(_estado: unknown, formData: FormData): Promise<Resultado> {
+  const analise = esquemaContrato.safeParse({
+    cliente_id: texto(formData, 'cliente_id'),
+    frente: texto(formData, 'frente'),
+    tipo: texto(formData, 'tipo'),
+    descricao: texto(formData, 'descricao'),
+    modo: texto(formData, 'modo'),
+    valor: texto(formData, 'valor'),
+    parcelas: texto(formData, 'parcelas'),
+    dia_vencimento: texto(formData, 'dia_vencimento'),
+    inicio: texto(formData, 'inicio'),
+    fim: texto(formData, 'fim'),
+    template_id: texto(formData, 'template_id'),
+  })
+  if (!analise.success) return { ok: false, erro: analise.error.issues[0].message }
+
+  const d = analise.data
+  let valorCentavos: number
+  try {
+    valorCentavos = parseParaCentavos(d.valor)
+  } catch {
+    return { ok: false, erro: 'Valor inválido.' }
+  }
+  if (valorCentavos <= 0) return { ok: false, erro: 'O valor deve ser maior que zero.' }
+
+  const parcelas = d.modo === 'parcelado' ? Number(d.parcelas || 0) : null
+  if (d.modo === 'parcelado' && (!parcelas || parcelas < 2)) {
+    return { ok: false, erro: 'Parcelamento exige ao menos 2 parcelas.' }
+  }
+
+  const diaVencimento = d.dia_vencimento ? Number(d.dia_vencimento) : null
+  if (diaVencimento !== null && (diaVencimento < 1 || diaVencimento > 28)) {
+    return { ok: false, erro: 'Dia de vencimento deve estar entre 1 e 28.' }
+  }
+  if (d.modo === 'recorrente' && diaVencimento === null) {
+    return { ok: false, erro: 'Contrato recorrente precisa de dia de vencimento.' }
+  }
+
+  const supabase = await supabaseServidor()
+  const { data: contrato, error } = await supabase
+    .from('contratos')
+    .insert({
+      cliente_id: d.cliente_id,
+      frente: d.frente,
+      tipo: d.tipo,
+      descricao: d.descricao || null,
+      modo: d.modo,
+      valor_centavos: valorCentavos,
+      parcelas,
+      dia_vencimento: diaVencimento,
+      inicio: d.inicio || null,
+      fim: d.fim || null,
+      template_id: d.template_id || null,
+      status: 'rascunho',
+    })
+    .select('id')
+    .single()
+
+  if (error || !contrato) {
+    return { ok: false, erro: error?.message ?? 'Falha ao salvar o contrato.' }
+  }
+
+  revalidatePath('/contratos')
+  return { ok: true, id: contrato.id }
+}
+
+/**
+ * Fluxo do mockup: Gerado → Enviado. Renderiza o template com as merge tags,
+ * guarda o PDF no Storage e abre o documento na ZapSign.
+ */
+export async function enviarParaAssinatura(contratoId: string): Promise<Resultado> {
+  const supabase = await supabaseServidor()
+
+  const { data, error } = await supabase
+    .from('contratos')
+    .select('*, clientes(*), templates_contrato(*)')
+    .eq('id', contratoId)
+    .single()
+
+  if (error || !data) return { ok: false, erro: 'Contrato não encontrado.' }
+
+  const contrato = data as unknown as Contrato & {
+    clientes: Cliente | null
+    templates_contrato: TemplateContrato | null
+  }
+
+  if (!contrato.templates_contrato) {
+    return { ok: false, erro: 'Contrato sem template. Escolha um modelo em Config.' }
+  }
+  const cliente = contrato.clientes
+  if (!cliente) return { ok: false, erro: 'Contrato sem cliente.' }
+  if (!cliente.email && !cliente.whatsapp) {
+    return { ok: false, erro: 'Cliente sem e-mail nem WhatsApp para assinar.' }
+  }
+
+  const vigencia = [contrato.inicio, contrato.fim].filter(Boolean).join(' a ') || 'indeterminada'
+  const corpo = aplicarMergeTags(contrato.templates_contrato.corpo_html, {
+    cliente: {
+      nome: cliente.nome,
+      nome_fantasia: cliente.nome_fantasia ?? cliente.nome,
+      documento: cliente.documento ?? '',
+      email: cliente.email ?? '',
+    },
+    contrato: {
+      codigo: contrato.codigo,
+      tipo: contrato.tipo,
+      descricao: contrato.descricao ?? '',
+    },
+    valor: formatBRL(Number(contrato.valor_centavos)),
+    parcelas: contrato.parcelas ?? 1,
+    vigencia,
+    dia_vencimento: contrato.dia_vencimento ?? '',
+  })
+
+  try {
+    const pdf = await htmlParaPdf(
+      moldurarContrato(corpo, `${contrato.codigo} — ${cliente.nome}`),
+    )
+    const caminho = `${cliente.id}/${contrato.codigo}.pdf`
+
+    const { error: erroUpload } = await supabase.storage
+      .from('contratos')
+      .upload(caminho, pdf, { contentType: 'application/pdf', upsert: true })
+    if (erroUpload) throw erroUpload
+
+    const doc = await criarDocumento({
+      nome: `${contrato.codigo} — ${cliente.nome}`,
+      pdfBase64: pdf.toString('base64'),
+      signatario: {
+        nome: cliente.nome,
+        email: cliente.email ?? undefined,
+        telefone: cliente.whatsapp ?? undefined,
+      },
+      urlWebhook: `${env.appUrl()}/api/webhooks/zapsign?t=${env.zapsignWebhookToken()}`,
+    })
+
+    await supabase
+      .from('contratos')
+      .update({
+        status: 'enviado',
+        pdf_path: caminho,
+        zapsign_doc_id: doc.token,
+        zapsign_status: doc.status,
+      })
+      .eq('id', contrato.id)
+
+    revalidatePath('/contratos')
+    return { ok: true, id: contrato.id }
+  } catch (erro) {
+    const mensagem = erro instanceof Error ? erro.message : 'Falha ao enviar para assinatura.'
+    return { ok: false, erro: mensagem }
+  }
+}
+
+/**
+ * Gatilho pós-assinatura: cria a cobrança no Asaas conforme o modo do contrato
+ * e deixa o contrato ativo. Idempotente — não recria se já houver assinatura.
+ */
+export async function ativarCobranca(contratoId: string): Promise<Resultado> {
+  const supabase = await supabaseServidor()
+  const { data, error } = await supabase
+    .from('contratos')
+    .select('*, clientes(*), assinaturas(id)')
+    .eq('id', contratoId)
+    .single()
+
+  if (error || !data) return { ok: false, erro: 'Contrato não encontrado.' }
+
+  const contrato = data as unknown as Contrato & {
+    clientes: Cliente | null
+    assinaturas: { id: string }[]
+  }
+  const cliente = contrato.clientes
+  if (!cliente?.asaas_customer_id) {
+    return { ok: false, erro: 'Cliente ainda não espelhado no Asaas.' }
+  }
+  if (contrato.modo === 'recorrente' && contrato.assinaturas.length > 0) {
+    return { ok: true, id: contrato.id }
+  }
+
+  const vencimento = proximoVencimento(contrato.dia_vencimento ?? 10)
+  const descricao = `${contrato.codigo} · ${contrato.tipo}`
+
+  try {
+    if (contrato.modo === 'recorrente') {
+      const assinatura = await asaas.criarAssinatura({
+        customer: cliente.asaas_customer_id,
+        valorCentavos: Number(contrato.valor_centavos),
+        nextDueDate: vencimento,
+        description: descricao,
+        externalReference: contrato.id,
+      })
+      await supabase.from('assinaturas').insert({
+        contrato_id: contrato.id,
+        asaas_subscription_id: assinatura.id,
+        ciclo: assinatura.cycle,
+        proxima_cobranca: assinatura.nextDueDate,
+      })
+    } else if (contrato.modo === 'parcelado') {
+      await asaas.criarParcelamento({
+        customer: cliente.asaas_customer_id,
+        totalCentavos: Number(contrato.valor_centavos),
+        parcelas: contrato.parcelas ?? 2,
+        dueDate: vencimento,
+        description: descricao,
+        externalReference: contrato.id,
+      })
+    } else {
+      await asaas.criarCobranca({
+        customer: cliente.asaas_customer_id,
+        valorCentavos: Number(contrato.valor_centavos),
+        dueDate: vencimento,
+        description: descricao,
+        externalReference: contrato.id,
+      })
+    }
+
+    await supabase.from('contratos').update({ status: 'ativo' }).eq('id', contrato.id)
+    revalidatePath('/contratos')
+    revalidatePath('/cobrancas')
+    return { ok: true, id: contrato.id }
+  } catch (erro) {
+    const mensagem = erro instanceof Error ? erro.message : 'Falha ao criar a cobrança.'
+    return { ok: false, erro: mensagem }
+  }
+}
+
+export async function marcarLead(id: string, campo: 'lido' | 'respondido', valor: boolean) {
+  const supabase = await supabaseServidor()
+  await supabase.from('leads').update({ [campo]: valor }).eq('id', id)
+  revalidatePath('/leads')
+}
+
+export async function salvarTemplate(_estado: unknown, formData: FormData): Promise<Resultado> {
+  const nome = texto(formData, 'nome')
+  const corpo = texto(formData, 'corpo_html')
+  if (!nome || !corpo) return { ok: false, erro: 'Nome e corpo do template são obrigatórios.' }
+
+  const supabase = await supabaseServidor()
+  const { error } = await supabase.from('templates_contrato').insert({
+    nome,
+    frente: texto(formData, 'frente') || null,
+    tipo: texto(formData, 'tipo') || null,
+    corpo_html: corpo,
+  })
+  if (error) return { ok: false, erro: error.message }
+
+  revalidatePath('/config')
+  return { ok: true }
+}

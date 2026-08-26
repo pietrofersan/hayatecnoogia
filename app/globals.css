@@ -1,0 +1,60 @@
+@import 'tailwindcss';
+
+/* Sistema de cores Haya v1.1 — dashboard dark-first sobre #0B0E15.
+   Seção 8 do blueprint. */
+@theme {
+  --color-noite: #0b0e15;
+  --color-painel: #10141f;
+  --color-linha: #1b2130;
+  --color-marfim: #f5f0e4;
+  --color-ink-2: #b9becb;
+  --color-nevoa: #8d93a5;
+  --color-apagado: #5a6072;
+
+  /* categóricas validadas — ordem fixa: dig → tec → vis */
+  --color-dig: #ed2d69;
+  --color-tec: #5b82ff;
+  --color-vis: #26a583;
+  --color-com: #8d93a5;
+
+  /* status: sempre com rótulo + ícone, nunca só cor */
+  --color-ok: #2fa36b;
+  --color-alerta: #bc8a00;
+  --color-critico: #de4b55;
+
+  /* exclusivo de momentos da marca-mãe */
+  --color-ouro: #d9a441;
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: var(--color-noite);
+  color: var(--color-marfim);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Números de KPI e tabelas alinhados em coluna. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-tec) 40%, transparent);
+}
+
+/* Scrollbar discreta, no tom do painel. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-linha) transparent;
+}

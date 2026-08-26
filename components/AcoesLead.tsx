@@ -1,0 +1,28 @@
+'use client'
+
+import { useTransition } from 'react'
+import { marcarLead } from '@/lib/acoes'
+import type { Lead } from '@/lib/db'
+
+export function AcoesLead({ lead }: { lead: Lead }) {
+  const [pendente, iniciar] = useTransition()
+
+  return (
+    <div className="flex gap-3 text-xs">
+      <button
+        disabled={pendente}
+        onClick={() => iniciar(() => marcarLead(lead.id, 'lido', !lead.lido))}
+        className="text-nevoa hover:text-marfim disabled:opacity-50"
+      >
+        {lead.lido ? 'Marcar não lido' : 'Marcar lido'}
+      </button>
+      <button
+        disabled={pendente}
+        onClick={() => iniciar(() => marcarLead(lead.id, 'respondido', !lead.respondido))}
+        className="text-nevoa hover:text-marfim disabled:opacity-50"
+      >
+        {lead.respondido ? 'Reabrir' : 'Marcar respondido'}
+      </button>
+    </div>
+  )
+}
