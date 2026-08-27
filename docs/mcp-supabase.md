@@ -55,10 +55,27 @@ macOS, Linux ou WSL:
 curl -fsSL https://claude.ai/install.sh | bash
 ```
 
-## 0.2 Fechar e reabrir o Terminal
+## 0.2 Cadastrar o caminho (PATH)
 
-O instalador coloca o `claude` em `~/.local/bin`, e o Terminal só enxerga isso
-numa janela nova. Feche a janela atual e abra outra.
+O instalador coloca o programa em `~/.local/bin`. Se ao final ele avisar:
+
+```
+Native installation exists but ~/.local/bin is not in your PATH
+```
+
+então rode o comando que ele mesmo sugere:
+
+```bash
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
+```
+
+O `~/.zshrc` é lido pelo Terminal toda vez que ele abre; essa linha ensina onde
+procurar o programa. O `source` aplica na hora.
+
+Nesse caso, fechar e reabrir o Terminal **não** resolve sozinho — o caminho
+precisa ser cadastrado uma vez.
+
+Se o instalador não deu esse aviso, basta fechar e abrir uma janela nova.
 
 ## 0.3 Conferir
 
@@ -66,11 +83,10 @@ numa janela nova. Feche a janela atual e abra outra.
 claude --version
 ```
 
-Deve imprimir um número de versão. Se ainda disser `command not found`, rode:
+Deve imprimir um número de versão, por exemplo `2.1.247 (Claude Code)`.
 
-```bash
-~/.local/bin/claude doctor
-```
+Se ainda disser `command not found`, rode `~/.local/bin/claude doctor` para o
+diagnóstico.
 
 ## 0.4 Entrar na conta
 
