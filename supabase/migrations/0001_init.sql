@@ -149,9 +149,48 @@ create table usuarios_master (            -- perfis sobre auth.users
 );
 
 -- RLS ---------------------------------------------------------------
--- Todas as tabelas: acesso apenas para usuários autenticados do Master.
--- O ingresso público de leads acontece pela rota /api/leads/[siteKey],
--- que usa a service role no servidor — nunca uma policy aberta.
+-- Acesso restrito a quem está em usuarios_master. Estar logado NÃO basta:
+-- o HAYA APP terá clientes finais autenticados no mesmo projeto, e eles não
+-- podem alcançar contratos, cobranças ou leads.
+--
+-- O ingresso público de leads acontece pela rota /api/leads/[siteKey], que usa
+-- a service role no servidor — nunca uma policy aberta.
+
+-- Helpers ------------------------------------------------------------
+-- security definer para poder consultar usuarios_master sem esbarrar na RLS
+-- da própria tabela. search_path fixo para impedir sequestro por schema.
+
+create or replace function public.is_master()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select exists (
+    select 1 from public.usuarios_master where id = (select auth.uid())
+  )
+$$;
+
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select exists (
+    select 1 from public.usuarios_master
+    where id = (select auth.uid()) and papel = 'admin'
+  )
+$$;
+
+revoke execute on function public.is_master() from public, anon;
+revoke execute on function public.is_admin()  from public, anon;
+grant  execute on function public.is_master() to authenticated;
+grant  execute on function public.is_admin()  to authenticated;
+
+-- Ligar RLS ----------------------------------------------------------
 alter table clientes            enable row level security;
 alter table templates_contrato  enable row level security;
 alter table contratos           enable row level security;
@@ -162,26 +201,96 @@ alter table leads               enable row level security;
 alter table webhook_logs        enable row level security;
 alter table usuarios_master     enable row level security;
 
+-- Operação: qualquer membro do master (admin ou operador) ------------
 do $$
 declare t text;
 begin
   foreach t in array array[
-    'clientes','templates_contrato','contratos','assinaturas',
-    'cobrancas','sites','leads','webhook_logs','usuarios_master'
+    'clientes','contratos','assinaturas','cobrancas','sites','leads'
   ] loop
     execute format(
-      'create policy %I on public.%I for all to authenticated using (true) with check (true)',
-      t || '_authenticated', t
+      'create policy %I on public.%I for all to authenticated '
+      'using (public.is_master()) with check (public.is_master())',
+      t || '_master', t
     );
   end loop;
 end $$;
+
+-- Só admin: modelos de contrato e log de webhooks --------------------
+-- templates_contrato define o texto jurídico; webhook_logs guarda payload
+-- bruto do Asaas e do ZapSign, que carrega dado de pagamento.
+do $$
+declare t text;
+begin
+  foreach t in array array['templates_contrato','webhook_logs'] loop
+    execute format(
+      'create policy %I on public.%I for all to authenticated '
+      'using (public.is_admin()) with check (public.is_admin())',
+      t || '_admin', t
+    );
+  end loop;
+end $$;
+
+-- usuarios_master: leitura da própria linha, escrita só por admin ----
+-- Separado de propósito: se um operador pudesse atualizar a própria linha,
+-- ele se promoveria a admin sozinho.
+
+create policy usuarios_master_le_proprio
+  on usuarios_master for select to authenticated
+  using (id = (select auth.uid()) or public.is_admin());
+
+create policy usuarios_master_admin_insere
+  on usuarios_master for insert to authenticated
+  with check (public.is_admin());
+
+create policy usuarios_master_admin_atualiza
+  on usuarios_master for update to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+
+create policy usuarios_master_admin_remove
+  on usuarios_master for delete to authenticated
+  using (public.is_admin());
+
+-- Grants explícitos --------------------------------------------------
+-- Os projetos novos são criados com "Automatically expose new tables"
+-- desligado, então o privilégio de tabela precisa ser concedido aqui.
+-- anon não recebe nada: não há acesso público a este schema.
+
+grant usage on schema public to authenticated;
+
+grant select, insert, update, delete on
+  clientes, templates_contrato, contratos, assinaturas,
+  cobrancas, sites, leads, webhook_logs, usuarios_master
+  to authenticated;
+
+-- contratos.seq é serial: inserir exige USAGE na sequência
+grant usage, select on all sequences in schema public to authenticated;
 
 -- Storage: bucket privado dos PDFs de contrato
 insert into storage.buckets (id, name, public)
 values ('contratos', 'contratos', false)
 on conflict (id) do nothing;
 
-create policy "contratos_storage_authenticated"
+create policy "contratos_storage_master"
   on storage.objects for all to authenticated
-  using (bucket_id = 'contratos')
-  with check (bucket_id = 'contratos');
+  using (bucket_id = 'contratos' and public.is_master())
+  with check (bucket_id = 'contratos' and public.is_master());
+
+-- Bootstrap ----------------------------------------------------------
+-- ATENÇÃO: com as policies acima, só um admin pode inserir em
+-- usuarios_master — e no banco recém-criado não existe nenhum. O primeiro
+-- admin precisa entrar por fora da RLS.
+--
+-- Passo a passo, uma vez só, depois de criar o usuário no Auth:
+--
+--   1. Painel → Authentication → Users → Add user (e-mail e senha)
+--   2. Copie o UUID que aparece na lista
+--   3. Painel → SQL Editor (roda como service_role, ignora RLS):
+--
+--        insert into public.usuarios_master (id, nome, papel)
+--        values ('COLE_O_UUID_AQUI', 'Nome da pessoa', 'admin');
+--
+-- A partir daí esse admin cadastra os demais pelo próprio app.
+--
+-- Deixado como comentário de propósito: seed com UUID fixo em migration
+-- versionada cria um usuário previsível em todo ambiente que rodar isto.
