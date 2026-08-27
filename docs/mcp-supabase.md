@@ -242,6 +242,57 @@ valor de `Authorization`.
 Revogue em https://supabase.com/dashboard/account/tokens e gere outro. Aí é
 refazer o passo 5 em cada computador.
 
+## Sessões da nuvem: acesso completo sem token no Git
+
+As sessões da nuvem não alcançam `mcp.supabase.com` pela política de rede do
+ambiente, e por isso caíam no conector OAuth — que enxerga só uma organização.
+Com projetos ativos nas duas organizações, isso deixa metade fora do alcance.
+
+A solução tem duas partes e não coloca segredo nenhum no repositório.
+
+### 1. `.mcp.json` versionado, com variável
+
+O arquivo está no repositório e **não contém token**:
+
+```json
+{
+  "mcpServers": {
+    "supabase-admin": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp",
+      "headers": { "Authorization": "Bearer ${SUPABASE_PAT}" }
+    }
+  }
+}
+```
+
+O Claude Code expande `${VAR}` nos campos `url`, `headers`, `env`, `command` e
+`args`. Se a variável não existir, ele apenas avisa em `claude mcp list`.
+
+**Nunca rode `claude mcp add --scope project`**: esse comando grava o token
+literal aqui, e o arquivo é versionado. Use sempre `--scope user`.
+
+### 2. Configurar o ambiente da nuvem
+
+Em [claude.ai/code](https://claude.ai/code), nas configurações do ambiente
+(docs: <https://code.claude.com/docs/en/cloud-environments>):
+
+- **Variável de ambiente** `SUPABASE_PAT` com o token pessoal
+- **Acesso de rede** liberando `mcp.supabase.com`
+
+Feito isso, as sessões da nuvem passam a usar o token e enxergam as duas
+organizações, igual ao Mac. O conector OAuth pode continuar conectado como
+reserva.
+
+### Enquanto isso não está configurado
+
+Leitura por ref direto já funciona hoje, mesmo em organização não listada:
+
+> use o projeto `mpafjsfsxfvgjiofkfdx`
+
+Escrita em projeto de organização não listada é a parte incerta — pelo Mac
+sempre funciona.
+
 ## Mapa das organizações e projetos
 
 Levantado em 27/08/2026 com o token pessoal.
