@@ -9,3 +9,6 @@ build/
 next-env.d.ts
 .DS_Store
 .vercel
+
+# MCP: pode conter tokens de acesso — nunca versionar
+.mcp.json
