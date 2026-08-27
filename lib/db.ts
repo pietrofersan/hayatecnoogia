@@ -140,6 +140,12 @@ export type UsuarioMaster = {
 
 export const FRENTES: Frente[] = ['digital', 'tecnologia', 'visual', 'comunicacao']
 
+export const ROTULO_MODO: Record<ModoCobranca, string> = {
+  recorrente: 'Recorrente',
+  parcelado: 'Parcelado',
+  avulso: 'Avulso',
+}
+
 export const ROTULO_FRENTE: Record<Frente, string> = {
   digital: 'Digital',
   tecnologia: 'Tecnologia',

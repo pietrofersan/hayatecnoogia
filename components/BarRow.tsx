@@ -84,14 +84,17 @@ export function ColunasMensais({
   const maximo = Math.max(...dados.map((d) => d.valor), 1)
 
   return (
-    <div className="flex h-40 items-end gap-3">
+    <div className="flex h-40 gap-3">
       {dados.map((d) => (
-        <div key={d.rotulo} className="flex flex-1 flex-col items-center gap-2">
-          <div
-            className="w-full max-w-10 rounded-t-[4px] bg-tec transition-[height] duration-500"
-            style={{ height: `${Math.max((d.valor / maximo) * 100, 2)}%` }}
-            title={`${d.rotulo}: ${formatar(d.valor)}`}
-          />
+        <div key={d.rotulo} className="flex h-full flex-1 flex-col items-center gap-2">
+          {/* O trilho precisa de altura definida para a barra em % resolver. */}
+          <div className="flex w-full flex-1 items-end justify-center">
+            <div
+              className="w-full max-w-10 rounded-t-[4px] bg-tec transition-[height] duration-500"
+              style={{ height: `${Math.max((d.valor / maximo) * 100, 2)}%` }}
+              title={`${d.rotulo}: ${formatar(d.valor)}`}
+            />
+          </div>
           <span className="text-[10px] tracking-wide text-apagado uppercase">
             {d.rotulo}
           </span>

@@ -5,7 +5,7 @@ import { Painel, Vazio } from '@/components/Painel'
 import { StatusChip, StatusContratoChip } from '@/components/StatusChip'
 import { Celula, Linha, Tabela } from '@/components/Tabela'
 import type { Cliente, Cobranca, Contrato, Lead, Site } from '@/lib/db'
-import { ROTULO_TIPO } from '@/lib/db'
+import { ROTULO_MODO, ROTULO_TIPO } from '@/lib/db'
 import { formatBRL, formatData } from '@/lib/money'
 import { supabaseServidor } from '@/lib/supabase'
 import { formataDocumento } from '@/lib/validacao'
@@ -66,7 +66,7 @@ export default async function FichaCliente({
                   <FrenteTag frente={ct.frente} />
                 </Celula>
                 <Celula>{ROTULO_TIPO[ct.tipo] ?? ct.tipo}</Celula>
-                <Celula>{ct.modo}</Celula>
+                <Celula>{ROTULO_MODO[ct.modo]}</Celula>
                 <Celula numerica>{formatBRL(Number(ct.valor_centavos))}</Celula>
                 <Celula>
                   <StatusContratoChip status={ct.status} />

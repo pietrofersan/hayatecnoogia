@@ -2,12 +2,12 @@ import Link from 'next/link'
 import { AcoesContrato } from '@/components/AcoesContrato'
 import { FrenteTag } from '@/components/FrenteTag'
 import { Painel, Vazio } from '@/components/Painel'
-import { StatusContratoChip } from '@/components/StatusChip'
+import { StatusChip, StatusContratoChip } from '@/components/StatusChip'
 import { Celula, Linha, Tabela } from '@/components/Tabela'
 import { TimelineContrato } from '@/components/TimelineContrato'
 import { WizardContrato } from '@/components/WizardContrato'
 import type { Cliente, Cobranca, Contrato, TemplateContrato } from '@/lib/db'
-import { FRENTES, ROTULO_FRENTE, ROTULO_TIPO, TIPOS_CONTRATO } from '@/lib/db'
+import { FRENTES, ROTULO_FRENTE, ROTULO_MODO, ROTULO_TIPO, TIPOS_CONTRATO } from '@/lib/db'
 import { formatBRL, formatData } from '@/lib/money'
 import { supabaseServidor } from '@/lib/supabase'
 
@@ -149,7 +149,7 @@ export default async function Contratos({
             {[
               ['Frente', ROTULO_FRENTE[selecionado.frente]],
               ['Tipo', ROTULO_TIPO[selecionado.tipo] ?? selecionado.tipo],
-              ['Modo', selecionado.modo],
+              ['Modo', ROTULO_MODO[selecionado.modo]],
               [
                 selecionado.modo === 'recorrente' ? 'Mensalidade' : 'Valor total',
                 formatBRL(Number(selecionado.valor_centavos)),
@@ -186,7 +186,9 @@ export default async function Contratos({
                     <Celula>
                       {cb.parcela ? `${cb.parcela}/${cb.total_parcelas ?? '—'}` : '—'}
                     </Celula>
-                    <Celula>{cb.status}</Celula>
+                    <Celula>
+                      <StatusChip status={cb.status} />
+                    </Celula>
                     <Celula numerica>{formatBRL(Number(cb.valor_centavos))}</Celula>
                   </Linha>
                 ))}
@@ -219,7 +221,7 @@ export default async function Contratos({
                   <FrenteTag frente={ct.frente} />
                 </Celula>
                 <Celula>{ROTULO_TIPO[ct.tipo] ?? ct.tipo}</Celula>
-                <Celula>{ct.modo}</Celula>
+                <Celula>{ROTULO_MODO[ct.modo]}</Celula>
                 <Celula>
                   <StatusContratoChip status={ct.status} />
                 </Celula>
