@@ -96,6 +96,29 @@ US$ 0,09/GB acima da cota em todas.
 **Região é permanente.** Mudar exige criar projeto novo e migrar. Decidir antes
 de carregar dado é barato; depois, não.
 
+
+### Longo prazo: São Paulo não prende
+
+Pesquisa na documentação (27/08/2026) não encontrou nenhuma feature com
+restrição regional: Read Replicas, PITR, Custom Domains, Branching e Network
+Restrictions aparecem sem ressalva. Preço é igual em todas as regiões.
+
+Não há atraso de versão: omnicrm (`sa-east-1`) roda Postgres `17.6.1.165`,
+enquanto PRINT.BE e ALLINO (EUA) rodam `17.6.1.155`.
+
+**A saída para expansão internacional são Read Replicas**, não mudança de
+região. Réplicas em outras regiões com geo-routing automático do balanceador;
+o primário continua onde está.
+
+Limitação: réplicas servem só leitura. Escrita e **Auth sempre vão ao
+primário** — o que reforça São Paulo, já que login de usuário brasileiro
+pagaria a viagem se o primário estivesse nos EUA.
+
+Integrações também são brasileiras (Asaas, ZapSign): webhook e gravação ficam
+no mesmo continente.
+
+**Decisão: Trativa e Obraverso em `sa-east-1`.**
+
 ### Consequência para o omnicrm
 
 `ghkckfamnpivlwlcjoez` está em `sa-east-1` — o único dos quatro na região certa.
