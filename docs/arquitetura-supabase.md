@@ -69,11 +69,52 @@ independente de quantas organizações existam. O conector OAuth enxerga uma só
 Múltiplas organizações **não atrapalham** o Claude Code no Mac. Atrapalham
 apenas as sessões da nuvem, que dependem do conector.
 
+## Decisão 4: região — São Paulo, com a Vercel junto
+
+Com usuários no Brasil, o melhor arranjo é **banco e funções da Vercel os dois
+em São Paulo**.
+
+| Arranjo | Navegador→Função | Função→Banco |
+|---|---|---|
+| Ambos nos EUA | ~120ms | ~5ms |
+| **Ambos em São Paulo** | **~10ms** | **~5ms** |
+| Função BR + banco US | ~10ms | ~120ms × N consultas |
+
+O que importa não é a distância do banco ao usuário, e sim que função e banco
+estejam juntos — e que o par esteja perto de quem usa. Dividir os dois é o pior
+caso, porque o número de consultas multiplica a viagem.
+
+Na Vercel, fixa-se em `vercel.json`:
+
+```json
+{ "regions": ["gru1"] }
+```
+
+Custo não muda: a Supabase cobra igual em qualquer região, e egress é
+US$ 0,09/GB acima da cota em todas.
+
+**Região é permanente.** Mudar exige criar projeto novo e migrar. Decidir antes
+de carregar dado é barato; depois, não.
+
+### Consequência para o omnicrm
+
+`ghkckfamnpivlwlcjoez` está em `sa-east-1` — o único dos quatro na região certa.
+Está vazio de dado real (1 workspace de teste, 5 pipeline_stages de seed) e já
+tem o schema de CRM que o HAYA APP vai absorver.
+
+Renomeá-lo para HAYA APP é o caminho certo, não um atalho.
+
+### Pendência: PRINT.BE e ALLINO estão nos EUA
+
+`us-east-1` e `us-east-2`, com dado real. Mover exige recriar e migrar. Não é
+urgente e não é decisão desta rodada — mas fica registrado que estão pagando a
+viagem ao exterior a cada requisição.
+
 ## Distribuição proposta
 
 | Organização | Plano | Projetos | Critério |
 |---|---|---|---|
-| HAYA TECNOLOGIA | pro | Allino, Print.be, Haya Master/App | Fatura, tem cron, não pode pausar |
+| HAYA TECNOLOGIA | pro | Allino, Print.be, Haya App (ex-omnicrm, `sa-east-1`) | Fatura, tem cron, não pode pausar |
 | HAYA 2 | free | Trativa, Obraverso | Em desenvolvimento, pausar é tolerável |
 
 Cabe exatamente nos 2 gratuitos da conta — desde que o projeto `HAYA`
