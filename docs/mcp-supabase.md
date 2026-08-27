@@ -272,17 +272,34 @@ O Claude Code expande `${VAR}` nos campos `url`, `headers`, `env`, `command` e
 **Nunca rode `claude mcp add --scope project`**: esse comando grava o token
 literal aqui, e o arquivo é versionado. Use sempre `--scope user`.
 
-### 2. Configurar o ambiente da nuvem
+### 2. Configurar o ambiente da nuvem — com uma ressalva
 
-Em [claude.ai/code](https://claude.ai/code), nas configurações do ambiente
-(docs: <https://code.claude.com/docs/en/cloud-environments>):
+Duas mudanças no ambiente (ícone de nuvem em <https://claude.ai/code>):
 
-- **Variável de ambiente** `SUPABASE_PAT` com o token pessoal
-- **Acesso de rede** liberando `mcp.supabase.com`
+- **Network access** → `Custom` → em **Allowed domains**, `mcp.supabase.com`,
+  marcando "Also include default list of common package managers"
+- **Environment variables** → `SUPABASE_PAT=<token>`
 
-Feito isso, as sessões da nuvem passam a usar o token e enxergam as duas
-organizações, igual ao Mac. O conector OAuth pode continuar conectado como
-reserva.
+**Ressalva importante.** A documentação da Anthropic diz explicitamente:
+
+> "cloud environments have no dedicated secrets store, so don't add API keys or
+> other credentials"
+
+Quem usa o ambiente lê as variáveis. Num ambiente pessoal isso é só você, mas o
+token é de conta inteira, sem escopo por projeto — a Supabase não permite
+limitar um PAT a uma organização.
+
+As mudanças valem só para **sessões novas**: as em andamento mantêm os valores
+de quando começaram.
+
+### Alternativa sem credencial no ambiente
+
+Consolidar os projetos numa organização só. O conector OAuth passa a enxergar
+tudo, e o tráfego dele não passa pela allowlist de rede — os docs confirmam que
+conector viaja pelos servidores da Anthropic, não pela rede da sessão. Nada de
+token no ambiente, nada de mudar política de rede.
+
+O custo é de negócio, não técnico: cada organização tem assinatura própria.
 
 ### Enquanto isso não está configurado
 
