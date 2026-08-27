@@ -13,6 +13,32 @@
 
 Ambos usam o cabeçalho `Authorization: Bearer <TOKEN>` e o escopo `local`.
 
+## ⚠️ Verificar o `project_ref` do supabase-prod
+
+O ref `iktqvinbdcmqysgqslew` está configurado, mas **provavelmente está errado**.
+Ele aponta para o projeto **PRINT.BE** (organização ALLINO), cujo schema é de
+e-commerce (`products`, `orders`, `quotes`, `stores`) e não tem nenhuma tabela
+em comum com o schema deste projeto (`clientes`, `contratos`, `cobrancas`,
+`assinaturas`, `leads`, `sites`, `templates_contrato`, `usuarios_master`,
+`webhook_logs` — ver `supabase/migrations/0001_init.sql`).
+
+Nenhum dos projetos visíveis por OAuth corresponde ao HAYA MASTER. O projeto
+certo provavelmente está na organização HAYA, que só aparece com o token
+pessoal.
+
+Depois de colar o token, rode no Claude Code:
+
+> Liste minhas organizações e projetos Supabase usando o supabase-admin
+
+Pegue o `ref` do projeto correto e corrija a URL do `supabase-prod`.
+
+## Por que o OAuth só enxerga uma organização
+
+O OAuth da Supabase concede acesso a **uma organização escolhida na hora de
+autorizar** — a documentação oficial pede para "escolher a organização que
+contém o projeto com que você quer trabalhar". Não é um bug: é o desenho.
+O token pessoal é a alternativa documentada para acesso à conta inteira.
+
 ## Por que escopo `local` e nunca `project`
 
 O escopo `project` grava em `.mcp.json`, que vai para o Git — o token vazaria no
