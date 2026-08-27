@@ -250,15 +250,33 @@ Levantado em 27/08/2026 com o token pessoal.
 
 | Projeto | Ref | Região | Conteúdo |
 |---|---|---|---|
-| PRINT.BE | `iktqvinbdcmqysgqslew` | us-east-1 | E-commerce: `products`, `orders`, `quotes`, `stores` |
-| ALLINO | `hhfsaxkisrkhttxkgclt` | us-east-2 | Produtividade: `habits`, `life_areas`, `goals`, `transactions` |
-| omnicrm | `ghkckfamnpivlwlcjoez` | sa-east-1 | CRM: `conversations`, `contacts`, `pipeline_stages` |
+| PRINT.BE | `iktqvinbdcmqysgqslew` | us-east-1 | E-commerce: `products`, `orders`, `quotes`, `stores` — 75 migrations |
+| ALLINO | `hhfsaxkisrkhttxkgclt` | us-east-2 | Produtividade: `habits`, `life_areas`, `goals`, `transactions` — 7 migrations |
+| omnicrm | `ghkckfamnpivlwlcjoez` | sa-east-1 | CRM: `conversations`, `contacts`, `pipeline_stages` — 3 migrations |
 
 ### HAYA — `hbsziygypvzdmbatroid`
 
 | Projeto | Ref | Região | Conteúdo |
 |---|---|---|---|
-| HAYA | `mpafjsfsxfvgjiofkfdx` | us-east-2 | **Vazio** — 0 tabelas, 0 migrations |
+| HAYA | `mpafjsfsxfvgjiofkfdx` | us-east-2 | **Vazio** — 0 tabelas, 0 migrations, 0 branches |
+
+## Onde o trabalho está acontecendo
+
+Migrations aplicadas em 27/08/2026:
+
+- **PRINT.BE** — `pix_manual`, `faturamento`, `faturamento_cron`,
+  `faturamento_grant_service_role`, `drop_stale_order_status_check`
+- **omnicrm** — `hardening`, `bootstrap_membership`
+- **ALLINO** — nada hoje (última: `plano_fundador`, 26/08)
+- **HAYA** — nada, nunca
+
+Se uma sessão relatar "schema e RLS corretos e ativos", confira em qual projeto:
+o HAYA continua zerado. As migrations `hardening` e `bootstrap_membership` do
+omnicrm são as candidatas mais prováveis a essa confusão.
+
+Os três projetos com histórico precisaram de migrations de segurança
+retroativas (`security_hardening`, `seguranca_*`, `hardening`). O HAYA parte do
+zero e já nasce com RLS na migration inicial — vale manter assim.
 
 ## Este repositório: banco ainda não existe
 
