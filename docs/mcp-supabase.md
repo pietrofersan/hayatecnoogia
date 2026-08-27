@@ -17,15 +17,28 @@ Os conectores da claude.ai só autenticam por OAuth: não existe campo para cola
 um token. O que propaga não carrega o token; o que carrega o token não propaga.
 Daí a repetição.
 
-## Servidores
+## Os dois servidores
 
-| Nome | URL | Uso |
-|---|---|---|
-| `supabase-admin` | `https://mcp.supabase.com/mcp` | Conta inteira, leitura e escrita |
-| `supabase-prod` | `https://mcp.supabase.com/mcp?project_ref=<REF>&read_only=true` | Um projeto só, somente leitura |
+| Nome | Escopo | Alcance | Permissão |
+|---|---|---|---|
+| `supabase-admin` | `user` — a máquina toda | Conta inteira: 5 projetos, ALLINO e HAYA | Leitura **e escrita** |
+| `supabase-prod` | `local` — uma pasta só | Um projeto fixo | Somente leitura |
 
-Escopo `local` nos dois. O escopo `project` grava em `.mcp.json`, que vai para o
-Git e vazaria o token — por isso `.mcp.json` está no `.gitignore`.
+O `supabase-admin` é o que responde "quero que funcione pra todos": escopo
+`user` vale em qualquer pasta daquele computador. Configura uma vez por máquina.
+
+O `supabase-prod` é opcional e serve de trilho de segurança num projeto
+específico: fixa o `project_ref` e força `read_only=true`. Só vale a pena nos
+repositórios cujo banco tem dado real de cliente.
+
+**Cuidado consciente:** com o `supabase-admin` em escopo `user`, o Claude tem
+escrita em todos os projetos, em qualquer pasta. Por isso as permissões
+pré-aprovadas em `.claude/settings.local.json` liberam só o `supabase-prod`
+(somente leitura). Operações de escrita pelo `supabase-admin` continuam pedindo
+sua confirmação — mantenha assim.
+
+O escopo `project` nunca: grava em `.mcp.json`, que vai para o Git e vazaria o
+token. Por isso `.mcp.json` está no `.gitignore`.
 
 ---
 
@@ -39,15 +52,10 @@ Git e vazaria o token — por isso `.mcp.json` está no `.gitignore`.
 4. **Copie e guarde o token agora** — a Supabase mostra uma única vez.
    Guarde num gerenciador de senhas; você vai precisar dele no outro computador.
 
-## 2. Abrir o terminal na pasta do projeto
+## 2. Abrir o terminal
 
-```bash
-cd ~/hayatecnoogia    # ajuste se a pasta estiver em outro lugar
-pwd                   # confirme que aparece o caminho do projeto
-```
-
-O `cd` importa: o escopo `local` amarra a configuração **à pasta do projeto**.
-Rodar os comandos na pasta errada configura o lugar errado.
+Não precisa entrar em pasta nenhuma: o escopo `user` vale para a máquina toda.
+Abra o Terminal e siga.
 
 ## 3. Ver o que existe hoje
 
@@ -65,15 +73,19 @@ claude mcp remove supabase
 
 Troque `supabase` pelo nome que apareceu no passo 3.
 
-## 5. Criar as duas conexões novas
+## 5. Criar a conexão principal
 
 Troque `SEU_TOKEN` pelo token do passo 1 nos dois comandos.
 
 ```bash
-claude mcp add --transport http --scope local \
+claude mcp add --transport http --scope user \
   supabase-admin https://mcp.supabase.com/mcp \
   --header "Authorization: Bearer SEU_TOKEN"
 ```
+
+Só isso já cobre os 5 projetos. O `supabase-prod` abaixo é opcional — rode
+apenas se quiser o trilho de leitura num repositório específico, e aí **de
+dentro da pasta daquele repositório**:
 
 ```bash
 claude mcp add --transport http --scope local \
@@ -124,71 +136,40 @@ Reinicie o Claude Code de novo.
 
 # PARTE 2 — Outro computador
 
-Aqui não tem descoberta nenhuma: é só repetir a configuração já resolvida.
-Use **o mesmo token** e **o mesmo ref** da Parte 1.
-
-## 1. Ter o projeto na máquina
-
-```bash
-cd ~/hayatecnoogia
-git pull
-```
-
-Se ainda não tiver o projeto ali, clone antes:
-
-```bash
-git clone https://github.com/pietrofersan/hayatecnoogia.git
-cd hayatecnoogia
-```
-
-## 2. Remover a conexão antiga, se houver
+Sem descoberta nenhuma aqui, e sem precisar clonar nada primeiro. Use **o mesmo
+token** da Parte 1.
 
 ```bash
 claude mcp list
 claude mcp remove supabase
 ```
 
-Se não aparecer nenhuma Supabase, pule este passo.
-
-## 3. Criar as duas conexões
-
-Mesmos comandos do passo 5 da Parte 1, já com o ref correto:
+Se não aparecer nenhuma Supabase, pule o `remove`.
 
 ```bash
-claude mcp add --transport http --scope local \
+claude mcp add --transport http --scope user \
   supabase-admin https://mcp.supabase.com/mcp \
   --header "Authorization: Bearer SEU_TOKEN"
 ```
 
 ```bash
-claude mcp add --transport http --scope local \
-  supabase-prod 'https://mcp.supabase.com/mcp?project_ref=REF_CORRETO&read_only=true' \
-  --header "Authorization: Bearer SEU_TOKEN"
-```
-
-## 4. Conferir e reiniciar
-
-```bash
 claude mcp list
 ```
 
-Reinicie o Claude Code. Pronto.
+Reinicie o Claude Code. Pronto — os 5 projetos ficam visíveis.
+
+Se você usa o trilho `supabase-prod` em algum repositório, repita aquele comando
+de dentro da pasta do repositório clonado, com o mesmo ref.
 
 ---
 
 ## Onde fica o token no disco
 
-`~/.claude.json`, na chave `projects` → *caminho da pasta do projeto* →
-`mcpServers`. Esse arquivo nunca vai para o Git.
+`~/.claude.json`, na chave em `mcpServers` na raiz (escopo `user`) ou em
+`projects` → *caminho da pasta* → `mcpServers` (escopo `local`). Esse arquivo nunca vai para o Git.
 
 Para editar o token depois sem refazer os comandos, abra esse arquivo e troque o
 valor de `Authorization`.
-
-## Dica: valendo para todos os projetos da máquina
-
-Se quiser o `supabase-admin` disponível em qualquer pasta daquele computador, e
-não só neste projeto, troque `--scope local` por `--scope user`. O token
-continua fora do Git nos dois casos.
 
 ## Se o token vazar
 
