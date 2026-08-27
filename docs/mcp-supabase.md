@@ -242,18 +242,42 @@ valor de `Authorization`.
 Revogue em https://supabase.com/dashboard/account/tokens e gere outro. Aí é
 refazer o passo 5 em cada computador.
 
-## Pendência: o `project_ref` original estava errado
+## Mapa das organizações e projetos
 
-O ref `iktqvinbdcmqysgqslew`, configurado inicialmente, aponta para o projeto
-**PRINT.BE** (organização ALLINO), de schema e-commerce (`products`, `orders`,
-`quotes`, `stores`). Não tem nenhuma tabela em comum com o schema deste
-repositório (`clientes`, `contratos`, `cobrancas`, `assinaturas`, `leads`,
-`sites`, `templates_contrato`, `usuarios_master`, `webhook_logs` — ver
-`supabase/migrations/0001_init.sql`).
+Levantado em 27/08/2026 com o token pessoal.
 
-Os outros dois projetos visíveis também não correspondem: `ALLINO`
-(`hhfsaxkisrkhttxkgclt`, produtividade pessoal) e `omnicrm`
-(`ghkckfamnpivlwlcjoez`, CRM de mensagens). O projeto do HAYA MASTER
-provavelmente está na organização HAYA — invisível até o token entrar em uso.
+### ALLINO — `qngrmsrvagiqsdhydsov`
 
-Por isso o passo 8 da Parte 1.
+| Projeto | Ref | Região | Conteúdo |
+|---|---|---|---|
+| PRINT.BE | `iktqvinbdcmqysgqslew` | us-east-1 | E-commerce: `products`, `orders`, `quotes`, `stores` |
+| ALLINO | `hhfsaxkisrkhttxkgclt` | us-east-2 | Produtividade: `habits`, `life_areas`, `goals`, `transactions` |
+| omnicrm | `ghkckfamnpivlwlcjoez` | sa-east-1 | CRM: `conversations`, `contacts`, `pipeline_stages` |
+
+### HAYA — `hbsziygypvzdmbatroid`
+
+| Projeto | Ref | Região | Conteúdo |
+|---|---|---|---|
+| HAYA | `mpafjsfsxfvgjiofkfdx` | us-east-2 | **Vazio** — 0 tabelas, 0 migrations |
+
+## Este repositório: banco ainda não existe
+
+O projeto **HAYA** (`mpafjsfsxfvgjiofkfdx`), criado em 26/08/2026, é o destino
+natural deste repositório — mas está zerado. A migration
+`supabase/migrations/0001_init.sql`, que cria `clientes`, `contratos`,
+`cobrancas`, `assinaturas`, `leads`, `sites`, `templates_contrato`,
+`usuarios_master` e `webhook_logs`, **nunca foi aplicada em lugar nenhum**.
+
+Por isso o `supabase-prod` ainda não faz sentido: ele força `read_only=true`, e
+o primeiro passo aqui é justamente uma escrita. Aplique a migration pelo
+`supabase-admin` e só depois monte o trilho de leitura:
+
+```bash
+claude mcp add --transport http --scope local \
+  supabase-prod 'https://mcp.supabase.com/mcp?project_ref=mpafjsfsxfvgjiofkfdx&read_only=true' \
+  --header "Authorization: Bearer SEU_TOKEN"
+```
+
+O ref `iktqvinbdcmqysgqslew`, configurado no início deste trabalho, apontava
+para o PRINT.BE — projeto de e-commerce sem nenhuma tabela em comum com este
+repositório. Foi descartado.
