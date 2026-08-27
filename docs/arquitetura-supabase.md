@@ -4,10 +4,30 @@ Registro de 27/08/2026. Levantado com dados reais via MCP.
 
 ## Estado atual
 
-| Organização | Plano | Projetos |
+Verificado em 27/08/2026 via API.
+
+### HAYA TECNOLOGIA / ALLINO (`qngrmsrvagiqsdhydsov`) — **pro**
+
+| Projeto | Ref | Região |
 |---|---|---|
-| ALLINO (`qngrmsrvagiqsdhydsov`) | **pro** | PRINT.BE, ALLINO, omnicrm |
-| HAYA (`hbsziygypvzdmbatroid`) | **free** | HAYA (vazio) |
+| PRINT.BE | `iktqvinbdcmqysgqslew` | us-east-1 |
+| ALLINO | `hhfsaxkisrkhttxkgclt` | us-east-2 |
+| HAYA APP | `ghkckfamnpivlwlcjoez` | **sa-east-1** |
+
+### HAYA TECH (`hbsziygypvzdmbatroid`) — **free**
+
+| Projeto | Ref | Região |
+|---|---|---|
+| TRATIVA | `nktvjhcyyxfdtpzzhkbp` | **sa-east-1** |
+| OBRAVERSO | `fcbvlvfcmaywtchcixii` | **sa-east-1** |
+
+Os três novos nasceram em São Paulo, com Postgres 17.6.1.166 — versão mais
+recente que a dos dois antigos nos EUA (17.6.1.155).
+
+O projeto `HAYA` (`mpafjsfsxfvgjiofkfdx`), que estava vazio, saiu — os dois
+slots gratuitos foram para TRATIVA e OBRAVERSO.
+
+Pendência de região: PRINT.BE e ALLINO seguem nos EUA, com dado real.
 
 ## Decisão 1: uma organização por plano, não por marca
 
