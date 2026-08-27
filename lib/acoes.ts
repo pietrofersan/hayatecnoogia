@@ -29,8 +29,9 @@ function texto(formData: FormData, campo: string): string {
 
 /**
  * Fluxo 1 do blueprint: cria o cliente no Master e espelha no Asaas.
- * Se o Asaas falhar, o cliente continua salvo — o espelho pode ser
- * refeito depois pela ficha; a operação nunca fica bloqueada por integração.
+ * Com o campo `id` preenchido, atualiza em vez de criar.
+ * Se o Asaas falhar, o cliente continua salvo — o espelho pode ser refeito
+ * depois pela ficha; a operação nunca fica bloqueada por integração.
  */
 export async function salvarCliente(_estado: unknown, formData: FormData): Promise<Resultado> {
   const analise = esquemaCliente.safeParse({
@@ -52,18 +53,53 @@ export async function salvarCliente(_estado: unknown, formData: FormData): Promi
     return { ok: false, erro: 'CPF/CNPJ inválido.' }
   }
 
+  const campos = {
+    nome: dados.nome,
+    nome_fantasia: dados.nome_fantasia || null,
+    documento: documento || null,
+    email: dados.email || null,
+    telefone: dados.telefone || null,
+    whatsapp: dados.whatsapp || null,
+    observacoes: dados.observacoes || null,
+  }
+
   const supabase = await supabaseServidor()
+  const id = texto(formData, 'id')
+
+  if (id) {
+    const { data: existente, error } = await supabase
+      .from('clientes')
+      .update(campos)
+      .eq('id', id)
+      .select('id, asaas_customer_id')
+      .single()
+
+    if (error || !existente) {
+      return { ok: false, erro: error?.message ?? 'Falha ao atualizar o cliente.' }
+    }
+
+    // Mantém o espelho do Asaas em dia; falha aqui não desfaz a edição.
+    if (existente.asaas_customer_id) {
+      try {
+        await asaas.atualizarCliente(existente.asaas_customer_id, {
+          name: dados.nome,
+          cpfCnpj: documento || undefined,
+          email: dados.email || undefined,
+          mobilePhone: dados.whatsapp || dados.telefone || undefined,
+        })
+      } catch (erro) {
+        console.error('[asaas] atualização do cliente falhou', erro)
+      }
+    }
+
+    revalidatePath('/clientes')
+    revalidatePath(`/clientes/${id}`)
+    return { ok: true, id }
+  }
+
   const { data: cliente, error } = await supabase
     .from('clientes')
-    .insert({
-      nome: dados.nome,
-      nome_fantasia: dados.nome_fantasia || null,
-      documento: documento || null,
-      email: dados.email || null,
-      telefone: dados.telefone || null,
-      whatsapp: dados.whatsapp || null,
-      observacoes: dados.observacoes || null,
-    })
+    .insert(campos)
     .select('id')
     .single()
 
@@ -89,6 +125,46 @@ export async function salvarCliente(_estado: unknown, formData: FormData): Promi
 
   revalidatePath('/clientes')
   return { ok: true, id: cliente.id }
+}
+
+/**
+ * Refaz o espelho no Asaas de um cliente que ficou sem `asaas_customer_id`
+ * — o contrato não vira cobrança enquanto esse elo não existir.
+ */
+export async function espelharNoAsaas(clienteId: string): Promise<Resultado> {
+  const supabase = await supabaseServidor()
+  const { data, error } = await supabase
+    .from('clientes')
+    .select('*')
+    .eq('id', clienteId)
+    .single()
+
+  if (error || !data) return { ok: false, erro: 'Cliente não encontrado.' }
+  const cliente = data as Cliente
+  if (cliente.asaas_customer_id) return { ok: true, id: cliente.id }
+
+  try {
+    const noAsaas = await asaas.criarCliente({
+      name: cliente.nome,
+      cpfCnpj: cliente.documento ?? undefined,
+      email: cliente.email ?? undefined,
+      mobilePhone: cliente.whatsapp ?? cliente.telefone ?? undefined,
+      externalReference: cliente.id,
+    })
+    await supabase
+      .from('clientes')
+      .update({ asaas_customer_id: noAsaas.id })
+      .eq('id', cliente.id)
+
+    revalidatePath('/clientes')
+    revalidatePath(`/clientes/${cliente.id}`)
+    return { ok: true, id: cliente.id }
+  } catch (erro) {
+    return {
+      ok: false,
+      erro: erro instanceof Error ? erro.message : 'Falha ao espelhar no Asaas.',
+    }
+  }
 }
 
 const esquemaContrato = z.object({
@@ -355,4 +431,135 @@ export async function salvarTemplate(_estado: unknown, formData: FormData): Prom
 
   revalidatePath('/config')
   return { ok: true }
+}
+
+/** Normaliza o domínio: sem protocolo, sem www, sem barra final. */
+function normalizaDominio(entrada: string): string {
+  return entrada
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '')
+    .replace(/\/.*$/, '')
+}
+
+/**
+ * Cadastro e edição dos sites dos clientes. A `site_key` usada pelo
+ * formulário público é gerada pelo banco e nunca muda depois — trocá-la
+ * derrubaria os formulários já instalados.
+ */
+export async function salvarSite(_estado: unknown, formData: FormData): Promise<Resultado> {
+  const dominio = normalizaDominio(texto(formData, 'dominio'))
+  if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(dominio)) {
+    return { ok: false, erro: 'Domínio inválido. Ex.: cliente.com.br' }
+  }
+
+  const campos = {
+    dominio,
+    cliente_id: texto(formData, 'cliente_id') || null,
+    host: texto(formData, 'host') || null,
+  }
+
+  const supabase = await supabaseServidor()
+  const id = texto(formData, 'id')
+
+  const { data, error } = id
+    ? await supabase.from('sites').update(campos).eq('id', id).select('id').single()
+    : await supabase.from('sites').insert(campos).select('id').single()
+
+  if (error || !data) {
+    const duplicado = error?.code === '23505'
+    return {
+      ok: false,
+      erro: duplicado ? 'Esse domínio já está cadastrado.' : (error?.message ?? 'Falha ao salvar o site.'),
+    }
+  }
+
+  revalidatePath('/config')
+  revalidatePath('/dashboard')
+  return { ok: true, id: data.id }
+}
+
+/**
+ * Edição de contrato — permitida só enquanto está em rascunho.
+ * Depois de enviado para assinatura, o PDF já saiu da nossa mão: mexer no
+ * valor aqui deixaria o Master divergente do documento que o cliente vê.
+ */
+export async function atualizarContrato(_estado: unknown, formData: FormData): Promise<Resultado> {
+  const id = texto(formData, 'id')
+  if (!id) return { ok: false, erro: 'Contrato não informado.' }
+
+  const supabase = await supabaseServidor()
+  const { data: atual, error: erroBusca } = await supabase
+    .from('contratos')
+    .select('status')
+    .eq('id', id)
+    .single()
+
+  if (erroBusca || !atual) return { ok: false, erro: 'Contrato não encontrado.' }
+  if (atual.status !== 'rascunho') {
+    return {
+      ok: false,
+      erro: 'Só dá para editar contrato em rascunho. Depois de enviado, cancele e gere outro.',
+    }
+  }
+
+  const analise = esquemaContrato.safeParse({
+    cliente_id: texto(formData, 'cliente_id'),
+    frente: texto(formData, 'frente'),
+    tipo: texto(formData, 'tipo'),
+    descricao: texto(formData, 'descricao'),
+    modo: texto(formData, 'modo'),
+    valor: texto(formData, 'valor'),
+    parcelas: texto(formData, 'parcelas'),
+    dia_vencimento: texto(formData, 'dia_vencimento'),
+    inicio: texto(formData, 'inicio'),
+    fim: texto(formData, 'fim'),
+    template_id: texto(formData, 'template_id'),
+  })
+  if (!analise.success) return { ok: false, erro: analise.error.issues[0].message }
+
+  const d = analise.data
+  let valorCentavos: number
+  try {
+    valorCentavos = parseParaCentavos(d.valor)
+  } catch {
+    return { ok: false, erro: 'Valor inválido.' }
+  }
+  if (valorCentavos <= 0) return { ok: false, erro: 'O valor deve ser maior que zero.' }
+
+  const parcelas = d.modo === 'parcelado' ? Number(d.parcelas || 0) : null
+  if (d.modo === 'parcelado' && (!parcelas || parcelas < 2)) {
+    return { ok: false, erro: 'Parcelamento exige ao menos 2 parcelas.' }
+  }
+
+  const diaVencimento = d.dia_vencimento ? Number(d.dia_vencimento) : null
+  if (diaVencimento !== null && (diaVencimento < 1 || diaVencimento > 28)) {
+    return { ok: false, erro: 'Dia de vencimento deve estar entre 1 e 28.' }
+  }
+  if (d.modo === 'recorrente' && diaVencimento === null) {
+    return { ok: false, erro: 'Contrato recorrente precisa de dia de vencimento.' }
+  }
+
+  const { error } = await supabase
+    .from('contratos')
+    .update({
+      cliente_id: d.cliente_id,
+      frente: d.frente,
+      tipo: d.tipo,
+      descricao: d.descricao || null,
+      modo: d.modo,
+      valor_centavos: valorCentavos,
+      parcelas,
+      dia_vencimento: diaVencimento,
+      inicio: d.inicio || null,
+      fim: d.fim || null,
+      template_id: d.template_id || null,
+    })
+    .eq('id', id)
+
+  if (error) return { ok: false, erro: error.message }
+
+  revalidatePath('/contratos')
+  return { ok: true, id }
 }

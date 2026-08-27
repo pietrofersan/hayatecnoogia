@@ -1,9 +1,10 @@
+import { FormSite } from '@/components/FormSite'
 import { FormTemplate } from '@/components/FormTemplate'
 import { FrenteTag } from '@/components/FrenteTag'
 import { Painel, Vazio } from '@/components/Painel'
 import { SnippetLead } from '@/components/SnippetLead'
 import { Celula, Linha, Tabela } from '@/components/Tabela'
-import type { Site, TemplateContrato, UsuarioMaster } from '@/lib/db'
+import type { Cliente, Site, TemplateContrato, UsuarioMaster } from '@/lib/db'
 import { ROTULO_TIPO } from '@/lib/db'
 import { formatData } from '@/lib/money'
 import { supabaseServidor } from '@/lib/supabase'
@@ -23,11 +24,15 @@ const INTEGRACOES = [
 
 export default async function Config() {
   const supabase = await supabaseServidor()
-  const [{ data: templates }, { data: usuarios }, { data: sites }] = await Promise.all([
-    supabase.from('templates_contrato').select('*').order('nome'),
-    supabase.from('usuarios_master').select('*').order('nome'),
-    supabase.from('sites').select('*').order('dominio'),
-  ])
+  const [{ data: templates }, { data: usuarios }, { data: sites }, { data: clientes }] =
+    await Promise.all([
+      supabase.from('templates_contrato').select('*').order('nome'),
+      supabase.from('usuarios_master').select('*').order('nome'),
+      supabase.from('sites').select('*').order('dominio'),
+      supabase.from('clientes').select('id, nome').order('nome'),
+    ])
+
+  const listaClientes = (clientes ?? []) as Pick<Cliente, 'id' | 'nome'>[]
 
   const base = process.env.NEXT_PUBLIC_APP_URL ?? ''
 
@@ -104,17 +109,25 @@ export default async function Config() {
         )}
       </Painel>
 
-      <Painel titulo="Sites e captação de leads">
+      <Painel
+        titulo="Sites e captação de leads"
+        acao={<FormSite clientes={listaClientes} />}
+      >
         {((sites ?? []) as Site[]).length === 0 ? (
           <Vazio>Cadastre os domínios dos clientes para gerar as chaves de formulário.</Vazio>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-8">
             {(sites as Site[]).map((s) => (
               <div key={s.id}>
-                <p className="mb-2 text-sm text-marfim">
-                  {s.dominio}{' '}
-                  <span className="ml-2 font-mono text-[11px] text-apagado">{s.site_key}</span>
-                </p>
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm text-marfim">
+                    {s.dominio}
+                    <span className="ml-2 font-mono text-[11px] text-apagado">
+                      {s.site_key}
+                    </span>
+                  </p>
+                  <FormSite clientes={listaClientes} site={s} />
+                </div>
                 <SnippetLead siteKey={s.site_key} base={base} />
               </div>
             ))}

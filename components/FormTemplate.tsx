@@ -5,6 +5,7 @@ import { useActionState, useEffect, useState } from 'react'
 import { salvarTemplate, type Resultado } from '@/lib/acoes'
 import { FRENTES, ROTULO_FRENTE, ROTULO_TIPO, TIPOS_CONTRATO } from '@/lib/db'
 import { AreaTexto, Botao, Campo, Entrada, Selecao } from './Campo'
+import { Modal } from './Modal'
 
 export function FormTemplate() {
   const [aberto, setAberto] = useState(false)
@@ -21,16 +22,33 @@ export function FormTemplate() {
     }
   }, [estado, router])
 
-  if (!aberto) {
-    return (
+  return (
+    <>
       <Botao variante="secundario" onClick={() => setAberto(true)}>
         Novo template
       </Botao>
-    )
-  }
+      {aberto && (
+        <Modal titulo="Novo template de contrato" aoFechar={() => setAberto(false)}>
+          <Formulario acao={acao} estado={estado} pendente={pendente} aoCancelar={() => setAberto(false)} />
+        </Modal>
+      )}
+    </>
+  )
+}
 
+function Formulario({
+  acao,
+  estado,
+  pendente,
+  aoCancelar,
+}: {
+  acao: (formData: FormData) => void
+  estado: Resultado | null
+  pendente: boolean
+  aoCancelar: () => void
+}) {
   return (
-    <form action={acao} className="mt-4 space-y-4">
+    <form action={acao} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-3">
         <Campo rotulo="Nome">
           <Entrada name="nome" required autoFocus />
@@ -70,7 +88,7 @@ export function FormTemplate() {
         <Botao type="submit" disabled={pendente}>
           {pendente ? 'Salvando…' : 'Salvar template'}
         </Botao>
-        <Botao type="button" variante="secundario" onClick={() => setAberto(false)}>
+        <Botao type="button" variante="secundario" onClick={aoCancelar}>
           Cancelar
         </Botao>
       </div>

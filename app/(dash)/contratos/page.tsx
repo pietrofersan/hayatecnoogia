@@ -1,12 +1,14 @@
 import Link from 'next/link'
 import { AcoesContrato } from '@/components/AcoesContrato'
+import type { ClienteResumo, TemplateResumo } from '@/components/CamposContrato'
+import { FormContratoRascunho } from '@/components/FormContratoRascunho'
 import { FrenteTag } from '@/components/FrenteTag'
 import { Painel, Vazio } from '@/components/Painel'
 import { StatusChip, StatusContratoChip } from '@/components/StatusChip'
 import { Celula, Linha, Tabela } from '@/components/Tabela'
 import { TimelineContrato } from '@/components/TimelineContrato'
 import { WizardContrato } from '@/components/WizardContrato'
-import type { Cliente, Cobranca, Contrato, TemplateContrato } from '@/lib/db'
+import type { Cobranca, Contrato } from '@/lib/db'
 import { FRENTES, ROTULO_FRENTE, ROTULO_MODO, ROTULO_TIPO, TIPOS_CONTRATO } from '@/lib/db'
 import { formatBRL, formatData } from '@/lib/money'
 import { supabaseServidor } from '@/lib/supabase'
@@ -53,6 +55,8 @@ export default async function Contratos({
   const contratos = (data ?? []) as unknown as (Contrato & {
     clientes: { nome: string } | null
   })[]
+  const listaClientes = (clientes ?? []) as ClienteResumo[]
+  const listaTemplates = (templates ?? []) as TemplateResumo[]
 
   const selecionado = f.c ? contratos.find((ct) => ct.id === f.c) : undefined
   let cobrancasDoSelecionado: Cobranca[] = []
@@ -79,12 +83,7 @@ export default async function Contratos({
           <h1 className="text-xl font-semibold text-marfim">Contratos</h1>
           <p className="text-sm text-apagado">{contratos.length} no filtro atual</p>
         </div>
-        <WizardContrato
-          clientes={(clientes ?? []) as Pick<Cliente, 'id' | 'nome' | 'email' | 'whatsapp'>[]}
-          templates={
-            (templates ?? []) as Pick<TemplateContrato, 'id' | 'nome' | 'frente' | 'tipo'>[]
-          }
-        />
+        <WizardContrato clientes={listaClientes} templates={listaTemplates} />
       </header>
 
       <form className="flex flex-wrap gap-2 text-sm">
@@ -170,8 +169,15 @@ export default async function Contratos({
             <p className="mt-4 text-sm whitespace-pre-wrap text-ink-2">{selecionado.descricao}</p>
           )}
 
-          <div className="mt-5">
+          <div className="mt-5 flex flex-wrap items-start gap-2">
             <AcoesContrato contratoId={selecionado.id} status={selecionado.status} />
+            {selecionado.status === 'rascunho' && (
+              <FormContratoRascunho
+                contrato={selecionado}
+                clientes={listaClientes}
+                templates={listaTemplates}
+              />
+            )}
           </div>
 
           {cobrancasDoSelecionado.length > 0 && (

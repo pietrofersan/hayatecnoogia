@@ -66,6 +66,19 @@ rota com service role. O snippet pronto de cada site está em Config.
 **Régua.** O Asaas já cobra por e-mail/SMS. O Master acrescenta o aviso interno
 D+1 das vencidas (cron diário) e o resumo semanal (segundas).
 
+## O que dá para operar hoje
+
+- **Clientes** — cadastro, edição e ficha 360. Quando o espelho no Asaas falha
+  no cadastro, a ficha mostra o botão para refazê-lo: sem `asaas_customer_id`
+  o contrato assinado não vira cobrança.
+- **Contratos** — wizard de criação, edição enquanto está em rascunho (depois
+  de enviado o PDF já saiu da nossa mão), envio para assinatura e ativação da
+  cobrança.
+- **Sites** — cadastro e edição em Config, com o snippet do formulário de leads
+  pronto para copiar. A `site_key` é gerada pelo banco e nunca muda: trocá-la
+  derrubaria os formulários já instalados nos sites dos clientes.
+- **Cobranças e leads** — listagem com filtros, 2ª via e marcação lido/respondido.
+
 ## Decisões tomadas na implementação
 
 Pontos que o blueprint deixou em aberto e foram resolvidos aqui — vale revisar:

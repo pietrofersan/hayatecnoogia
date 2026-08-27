@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { EspelharAsaas } from '@/components/EspelharAsaas'
+import { FormCliente } from '@/components/FormCliente'
 import { FrenteTag } from '@/components/FrenteTag'
 import { Painel, Vazio } from '@/components/Painel'
 import { StatusChip, StatusContratoChip } from '@/components/StatusChip'
@@ -40,14 +42,24 @@ export default async function FichaCliente({
 
   return (
     <div className="space-y-6">
-      <header>
-        <Link href="/clientes" className="text-xs text-apagado hover:text-ink-2">
-          ← Clientes
-        </Link>
-        <h1 className="mt-2 text-xl font-semibold text-marfim">{c.nome}</h1>
-        <p className="text-sm text-apagado">
-          {formataDocumento(c.documento)} · {c.email ?? '—'} · {c.whatsapp ?? c.telefone ?? '—'}
-        </p>
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <Link href="/clientes" className="text-xs text-apagado hover:text-ink-2">
+            ← Clientes
+          </Link>
+          <h1 className="mt-2 text-xl font-semibold text-marfim">{c.nome}</h1>
+          <p className="text-sm text-apagado">
+            {formataDocumento(c.documento)} · {c.email ?? '—'} · {c.whatsapp ?? c.telefone ?? '—'}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {c.asaas_customer_id ? (
+            <span className="text-xs text-ok">✓ espelhado no Asaas</span>
+          ) : (
+            <EspelharAsaas clienteId={c.id} />
+          )}
+          <FormCliente cliente={c} />
+        </div>
       </header>
 
       <Painel titulo="Contratos">
