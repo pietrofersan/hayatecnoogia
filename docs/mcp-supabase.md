@@ -55,6 +55,18 @@ macOS, Linux ou WSL:
 curl -fsSL https://claude.ai/install.sh | bash
 ```
 
+Windows PowerShell:
+
+```powershell
+irm https://claude.ai/install.ps1 | iex
+```
+
+O prompt do PowerShell começa com `PS C:\`; o do CMD começa com `C:\` sem o
+`PS`. Se `irm` responder `is not recognized`, você está no CMD.
+
+No Windows, instale também o [Git for Windows](https://git-scm.com/downloads/win):
+sem ele o Claude Code usa PowerShell no lugar do Bash.
+
 ## 0.2 Cadastrar o caminho (PATH)
 
 O instalador coloca o programa em `~/.local/bin`. Se ao final ele avisar:
@@ -146,6 +158,12 @@ claude mcp add --transport http --scope user \
   supabase-admin https://mcp.supabase.com/mcp \
   --header "Authorization: Bearer SEU_TOKEN"
 ```
+
+No PowerShell, mande em **linha única**: a continuação de linha ali é crase
+(`` ` ``), não barra invertida, e colar comando de várias linhas embola.
+
+**Gere um token por máquina** (`claude-code-mac`, `claude-code-windows`). Assim
+uma máquina perdida se resolve revogando um token, sem derrubar as outras.
 
 Só isso já cobre os 5 projetos. O `supabase-prod` abaixo é opcional — rode
 apenas se quiser o trilho de leitura num repositório específico, e aí **de
