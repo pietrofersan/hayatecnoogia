@@ -9,3 +9,6 @@ build/
 next-env.d.ts
 .DS_Store
 .vercel
+
+# MCP: .mcp.json e versionado, mas so com ${SUPABASE_PAT} — nunca com token literal.
+# Nao rode `claude mcp add --scope project`: ele grava o token em claro aqui.
