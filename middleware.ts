@@ -1,7 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const PUBLICAS = ['/login', '/api/leads', '/api/webhooks', '/api/cron']
+const PUBLICAS = ['/login', '/sem-acesso', '/api/leads', '/api/webhooks', '/api/cron']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -35,6 +35,22 @@ export async function middleware(request: NextRequest) {
     login.pathname = '/login'
     login.searchParams.set('proximo', pathname)
     return NextResponse.redirect(login)
+  }
+
+  // Estar autenticado no projeto não basta: o mesmo Supabase hospeda os
+  // usuários finais de outros apps (HAYA APP). Só quem está em
+  // usuarios_master enxerga o Master — a policy usuarios_master_le_proprio
+  // permite essa leitura da própria linha mesmo para quem não é membro.
+  const { data: membro } = await supabase
+    .from('usuarios_master')
+    .select('id')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  if (!membro) {
+    const semAcesso = request.nextUrl.clone()
+    semAcesso.pathname = '/sem-acesso'
+    return NextResponse.redirect(semAcesso)
   }
 
   return response
