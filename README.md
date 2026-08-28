@@ -24,8 +24,24 @@ npm install
 npm run dev
 ```
 
-O schema vive em `supabase/migrations/0001_init.sql`. Aplique com
-`supabase db push` (CLI) ou colando no SQL Editor do projeto.
+### Projeto Supabase
+
+Organização **HAYA TECNOLOGIA**, projeto **HAYA APP** (`ghkckfamnpivlwlcjoez`,
+região `sa-east-1`). A migração `supabase/migrations/0001_init.sql` já está
+aplicada lá.
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://ghkckfamnpivlwlcjoez.supabase.co
+```
+
+A anon key e a service_role saem de Settings → API do projeto. A service_role
+ignora RLS: só em variável de servidor, nunca em `NEXT_PUBLIC_`.
+
+O projeto foi reaproveitado de um app anterior (`omnicrm`) e ainda carrega as
+tabelas dele — `profiles`, `workspaces`, `contacts`, `conversations`,
+`messages`, `pipeline_stages`, `tags`, `channel_accounts`. Nenhuma colide com
+as do Master e nada no código as toca; podem ser removidas quando se confirmar
+que não servem mais.
 
 Crie o primeiro usuário pelo painel Auth do Supabase — o login é por
 e-mail/senha e todas as rotas fora de `/login`, `/api/leads`, `/api/webhooks`
@@ -121,7 +137,7 @@ pelo Master é a do ciclo seguinte; o mês corrente segue no fluxo antigo.
 - [ ] Conta ZapSign e token
 - [ ] Modelos de contrato atuais (1 por tipo) para virarem templates
 - [ ] Nº de clientes de mensalidade hoje · usuários e permissões
-- [ ] OK para criar o projeto Supabase
+- [x] Projeto Supabase criado e schema aplicado (HAYA APP)
 - [ ] Instância Gotenberg (ou decisão de trocar o gerador de PDF)
 
 ## Fora do escopo da F1
