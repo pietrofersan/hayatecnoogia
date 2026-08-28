@@ -151,6 +151,65 @@ Deixar o projeto antigo **pausado** por algumas semanas. Pausado não conta para
 o limite de projetos gratuitos e é restaurável por 90 dias. Deletar só depois
 que o novo estiver rodando sem susto.
 
+
+## O que o `supabase db dump` NÃO leva — verificado na prática
+
+Levantado migrando o ALLINO em 28/08/2026. O dump cobre o schema `public`
+por completo, mas três coisas ficam de fora e **nenhuma delas dá erro**:
+o restore passa limpo e a falta só aparece em uso.
+
+**1. Triggers no schema `auth`.** O `on_auth_user_created`, que dispara
+`handle_new_user()` a cada cadastro, não veio. Sem ele o usuário é criado sem
+perfil, sem espaço, sem prioridades e sem assinatura.
+
+**2. Buckets e policies de Storage.** O schema `storage` fica fora inteiro —
+nem os buckets, nem as policies de `storage.objects`.
+
+**3. REVOKEs desfeitos por GRANT.** Este é o mais traiçoeiro. O dump termina com
+`GRANT ALL ON FUNCTIONS TO anon, authenticated` e `ALTER DEFAULT PRIVILEGES`,
+que **reconcedem privilégios que migrations anteriores tinham revogado**.
+
+No ALLINO isso reabriu `find_user_id_by_email` para o papel `anon` — função
+`SECURITY DEFINER` que recebe e-mail e, sem login, permitiria descobrir se um
+endereço está cadastrado.
+
+### Por isso a verificação obrigatória
+
+Rodar `get_advisors` nos dois projetos e **comparar lista com lista**. Diferença
+é regressão até prova em contrário. Contagem de tabelas batendo não prova nada
+sobre privilégio.
+
+Comparar também:
+
+```sql
+select count(*) from information_schema.tables where table_schema='public';
+select count(*) from pg_policies where schemaname='public';
+select count(*) from pg_policies where schemaname='storage';
+select count(*) from storage.buckets;
+select count(*) from pg_trigger t join pg_class c on c.oid=t.tgrelid
+  join pg_namespace n on n.oid=c.relnamespace
+  where not t.tgisinternal and n.nspname in ('public','auth');
+```
+
+## ALLINO — estado da migração
+
+Destino: **ALLINO SP** (`lcctergaissacxecokrd`), `sa-east-1`.
+
+| | Antigo | Novo |
+|---|---|---|
+| Tabelas | 32 | 32 |
+| Policies (public) | 89 | 89 |
+| Policies (storage) | 5 | 5 |
+| Buckets | 2 | 2 |
+| Índices | 75 | 75 |
+| Funções | 4 | 4 |
+| Tipos enum | 5 | 5 |
+| Triggers | 3 | 3 |
+| Avisos de segurança | 3 + senha vazada desligada | 3 |
+
+Schema completo. Falta: recriar os 2 usuários de Auth, trocar variáveis na
+Vercel e validar o app.
+
 ## Janela
 
 Com bancos deste tamanho, o dump e o restore levam minutos. A janela de
