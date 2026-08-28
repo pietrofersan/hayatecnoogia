@@ -173,6 +173,39 @@ No ALLINO isso reabriu `find_user_id_by_email` para o papel `anon` — função
 `SECURITY DEFINER` que recebe e-mail e, sem login, permitiria descobrir se um
 endereço está cadastrado.
 
+
+**4. Configuração de Auth.** Provedores sociais (Google, Apple) e URLs. O
+projeto novo nasce com `Site URL` em `http://localhost:3000`, então o login
+social completa o handshake e devolve o usuário para o lugar errado.
+
+Copiar do projeto antigo em Authentication → Sign In / Providers e
+Authentication → URL Configuration. E **adicionar a nova callback URL no
+console do provedor** (Google Cloud → Credenciais → URIs de redirecionamento):
+o endereço contém o ref do projeto e muda.
+
+**5. Dados de referência.** Não é lacuna do dump — é de interpretação. "Dado
+fictício" e "dado de referência" moram nas mesmas tabelas.
+
+No ALLINO, `plans` vazia quebrou todo cadastro novo: o trigger
+`handle_new_user()` insere em `subscriptions` com `plan_id='gratuito'` e a
+chave estrangeira falhava. O painel só dizia "Database error creating new
+user". Também faltavam `platform_settings` e `master_financial_categories`.
+
+Antes de migrar, listar quais tabelas são catálogo e copiar o conteúdo delas.
+
+## ALLINO — concluído
+
+- Schema, policies, índices, triggers, Storage e dados de referência: conferidos
+- Usuários recriados com `is_admin` e plano corretos; Google vinculado à mesma
+  conta (`email, google`), sem duplicata
+- Vercel apontando para `lcctergaissacxecokrd`, confirmado pelos logs de auth
+- `vercel.json` com `"regions": ["gru1"]` — a API da Vercel confirma
+  `regions: ["gru1"]` no deploy de produção. **O plano Hobby aceita fixar uma
+  região**; só múltiplas regiões é recurso Pro.
+
+Pendente: deletar `hhfsaxkisrkhttxkgclt` após um ou dois dias de uso. Em
+organização Pro não há pausa — ou paga, ou deleta.
+
 ### Por isso a verificação obrigatória
 
 Rodar `get_advisors` nos dois projetos e **comparar lista com lista**. Diferença
