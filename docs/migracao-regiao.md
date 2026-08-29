@@ -206,6 +206,57 @@ Antes de migrar, listar quais tabelas são catálogo e copiar o conteúdo delas.
 Pendente: deletar `hhfsaxkisrkhttxkgclt` após um ou dois dias de uso. Em
 organização Pro não há pausa — ou paga, ou deleta.
 
+
+**6. Trigger de auto-seed faz o seed explicito duplicar.** Nao e lacuna do
+dump — e do seed. Se o schema tem trigger que popula tabela sozinho, inserir a
+mesma coisa no seed duplica em vez de ser ignorado, porque `on conflict do
+nothing` so pega quando existe restricao de unicidade.
+
+No PRINT.BE, `stores_seed_financial_categories` dispara ao inserir loja e cria
+9 categorias por loja. O seed inseriu de novo: 36 em vez de 18. Nada acusou
+erro — so apareceu na conferencia de numeros.
+
+Antes de escrever seed, listar os triggers de INSERT das tabelas envolvidas:
+
+```sql
+select c.relname, t.tgname, pg_get_triggerdef(t.oid)
+from pg_trigger t join pg_class c on c.oid=t.tgrelid
+join pg_namespace n on n.oid=c.relnamespace
+where not t.tgisinternal and n.nspname='public'
+  and pg_get_triggerdef(t.oid) ilike '%insert%';
+```
+
+## PRINT.BE — concluído
+
+Origem `iktqvinbdcmqysgqslew` (us-east-1) → destino **`vsiawlvbsgbjbkhkwwgo`**
+(sa-east-1).
+
+| | Antigo | Novo |
+|---|---|---|
+| Tabelas | 45 | 45 |
+| Policies (public) | 71 | 71 |
+| Policies (storage) | 9 | 9 |
+| Buckets | 4 | 4 |
+| Índices | 103 | 103 |
+| Funções | 27 | 27 |
+| Triggers | 13 | 13 |
+| Job de pg_cron | 1 | 1 |
+
+**Regressão de privilégio, maior que a do ALLINO.** Os `GRANT ALL ON FUNCTIONS`
+do fim do dump reabriram **12 funções** para o papel `anon` — de 15 para 27. A
+maioria era função de gatilho, que nunca deveria ser endpoint REST; entre as
+demais, `find_user_id_by_email` (enumeração de e-mail sem login),
+`public_order_line_floor` (sondagem da tabela de preços) e
+`seed_financial_categories`. Restaurado para 15 em `anon` e 16 em
+`authenticated`, listas idênticas à origem.
+
+Dois agendamentos coexistem e ambos foram preservados: `close-billing-periods`
+no pg_cron às 3h, e `/api/cron/faturamento` no `vercel.json` às 6h.
+
+`vercel.json` com `"regions": ["gru1"]` — commit `7f529c9` na `main`.
+
+Pendente: deletar `iktqvinbdcmqysgqslew` após um ou dois dias de uso.
+
 ### Por isso a verificação obrigatória
 
 Rodar `get_advisors` nos dois projetos e **comparar lista com lista**. Diferença
