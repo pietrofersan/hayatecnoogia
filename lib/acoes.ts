@@ -10,6 +10,8 @@ import { formatBRL, parseParaCentavos, proximoVencimento } from './money'
 import { somenteDigitos, validaDocumento } from './validacao'
 import { aplicarMergeTags, criarDocumento } from './zapsign'
 import { env } from './env'
+import { ErroIA, expandirSegmento } from './ia'
+import { EXTENSOES_PADRAO, checarDominio } from './rdap'
 
 export type Resultado = { ok: true; id?: string } | { ok: false; erro: string }
 
@@ -562,4 +564,112 @@ export async function atualizarContrato(_estado: unknown, formData: FormData): P
 
   revalidatePath('/contratos')
   return { ok: true, id }
+}
+
+// Módulo 1 — Inteligência de mercado -----------------------------------
+
+/**
+ * Cria o segmento. Sem cliente_id = modo "segmento" livre (Parte 2,
+ * prospecção); com cliente_id = já nasce ligado à ficha do cliente.
+ */
+export async function criarSegmento(_estado: unknown, formData: FormData): Promise<Resultado> {
+  const nome = texto(formData, 'nome')
+  if (!nome) return { ok: false, erro: 'Informe o nome do segmento.' }
+  const clienteId = texto(formData, 'cliente_id')
+
+  const supabase = await supabaseServidor()
+  const { data, error } = await supabase
+    .from('segmentos')
+    .insert({ nome, cliente_id: clienteId || null })
+    .select('id')
+    .single()
+
+  if (error || !data) return { ok: false, erro: error?.message ?? 'Falha ao criar o segmento.' }
+
+  revalidatePath('/segmentos')
+  return { ok: true, id: data.id }
+}
+
+/**
+ * Liga um segmento livre a um cliente — "transformar segmento em projeto
+ * de cliente" (Parte 16, tela 3). O estudo já feito não é copiado, é o
+ * mesmo registro que passa a aparecer na aba Mercado da ficha.
+ */
+export async function ligarSegmentoAoCliente(segmentoId: string, clienteId: string) {
+  const supabase = await supabaseServidor()
+  const { error } = await supabase
+    .from('segmentos')
+    .update({ cliente_id: clienteId })
+    .eq('id', segmentoId)
+  if (error) return { ok: false, erro: error.message } as Resultado
+  revalidatePath('/segmentos')
+  revalidatePath(`/segmentos/${segmentoId}`)
+  return { ok: true } as Resultado
+}
+
+/**
+ * Expande o segmento em palavras vizinhas via IA (Parte 6.1 caminho A) e
+ * grava as que ainda não existiam. Idempotente por (segmento_id, termo).
+ */
+export async function expandirPalavras(segmentoId: string): Promise<Resultado> {
+  const supabase = await supabaseServidor()
+  const { data: segmento, error: erroSegmento } = await supabase
+    .from('segmentos')
+    .select('nome')
+    .eq('id', segmentoId)
+    .single()
+  if (erroSegmento || !segmento) return { ok: false, erro: 'Segmento não encontrado.' }
+
+  try {
+    const termos = await expandirSegmento(segmento.nome)
+    if (termos.length === 0) return { ok: false, erro: 'A IA não retornou termos.' }
+
+    const { error } = await supabase
+      .from('palavras_chave')
+      .upsert(
+        termos.map((termo) => ({ segmento_id: segmentoId, termo })),
+        { onConflict: 'segmento_id,termo', ignoreDuplicates: true },
+      )
+    if (error) return { ok: false, erro: error.message }
+
+    revalidatePath(`/segmentos/${segmentoId}`)
+    return { ok: true, id: segmentoId }
+  } catch (erro) {
+    if (erro instanceof ErroIA) return { ok: false, erro: erro.message }
+    return { ok: false, erro: 'Falha ao expandir o segmento.' }
+  }
+}
+
+/** Marca/desmarca uma palavra como interessante (Parte 16, tela 3). */
+export async function marcarInteressante(palavraId: string, valor: boolean) {
+  const supabase = await supabaseServidor()
+  await supabase.from('palavras_chave').update({ interessante: valor }).eq('id', palavraId)
+}
+
+/**
+ * Checa a disponibilidade de domínio de uma palavra nas extensões padrão
+ * via RDAP (sem chave, sem aprovação — Parte 3.7/3.12). Chamada sob
+ * demanda pelo usuário, não em lote automático, para não estressar o
+ * serviço público.
+ */
+export async function checarDominiosDaPalavra(palavraId: string, termo: string) {
+  const supabase = await supabaseServidor()
+
+  const resultados = await Promise.all(
+    EXTENSOES_PADRAO.map(async (extensao) => {
+      const resultado = await checarDominio(termo, extensao)
+      return {
+        palavra_id: palavraId,
+        extensao,
+        disponivel: resultado === 'indeterminado' ? null : resultado === 'disponivel',
+        checado_em: new Date().toISOString(),
+      }
+    }),
+  )
+
+  await supabase
+    .from('checagens_dominio')
+    .upsert(resultados, { onConflict: 'palavra_id,extensao' })
+
+  revalidatePath(`/segmentos`)
 }

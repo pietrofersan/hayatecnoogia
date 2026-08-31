@@ -20,6 +20,7 @@ const INTEGRACOES = [
   { nome: 'Supabase · service role', variavel: 'SUPABASE_SERVICE_ROLE_KEY' },
   { nome: 'Gotenberg (PDF)', variavel: 'GOTENBERG_URL' },
   { nome: 'Cron', variavel: 'CRON_SECRET' },
+  { nome: 'Anthropic · expansão de segmento', variavel: 'ANTHROPIC_API_KEY' },
 ]
 
 export default async function Config() {

@@ -175,3 +175,38 @@ export const ROTULO_TIPO: Record<string, string> = {
   sinalizacao: 'Sinalização',
   projeto_pontual: 'Projeto pontual',
 }
+
+// Módulo 1 — Inteligência de mercado ---------------------------------
+
+export type TendenciaPalavra = 'subindo' | 'estavel' | 'caindo'
+
+export type Segmento = {
+  id: string
+  nome: string
+  cliente_id: string | null
+  criado_em: string
+}
+
+export type PalavraChave = {
+  id: string
+  segmento_id: string
+  termo: string
+  tendencia: TendenciaPalavra | null
+  volume: number | null
+  interessante: boolean
+  criado_em: string
+}
+
+export type ChecagemDominio = {
+  id: number
+  palavra_id: string
+  extensao: string
+  disponivel: boolean | null
+  checado_em: string | null
+}
+
+export const ROTULO_TENDENCIA: Record<TendenciaPalavra, string> = {
+  subindo: '▲ Subindo',
+  estavel: '● Estável',
+  caindo: '▼ Caindo',
+}

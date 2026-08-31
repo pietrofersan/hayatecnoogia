@@ -27,4 +27,6 @@ export const env = {
   leadNotifyEmail: () => process.env.LEAD_NOTIFY_EMAIL ?? null,
   cronSecret: () => obrigatoria('CRON_SECRET'),
   appUrl: () => process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000',
+
+  anthropicApiKey: () => process.env.ANTHROPIC_API_KEY ?? null,
 }
