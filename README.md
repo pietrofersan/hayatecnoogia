@@ -44,6 +44,15 @@ O projeto foi reaproveitado de um app anterior (`omnicrm`) e as tabelas dele
 do Master; acesso é liberado a qualquer `usuarios_master` via
 `public.is_master()` nas policies (`supabase/migrations/0002_crm_modulo.sql`).
 
+O CRM chegou a existir como app separado (`pietrofersan/haya-app`, também
+deployado à parte na Vercel) — decisão consciente: ele fica **parado, sem
+ser apagado**, e todo o desenvolvimento segue só aqui dentro do Master, em
+`app/(dash)/crm`. A documentação de arquitetura da mensageria (motor
+próprio, um adaptador por canal) que nasceu naquele repo está copiada em
+[docs/crm](docs/crm/arquitetura.md) — escrita para o app separado, ainda é a
+referência de como os adaptadores de WhatsApp/Instagram/Facebook/Mercado
+Livre vão se encaixar aqui.
+
 Crie o primeiro usuário pelo painel Auth do Supabase — o login é por
 e-mail/senha e todas as rotas fora de `/login`, `/api/leads`, `/api/webhooks`
 e `/api/cron` passam pelo middleware de sessão.
@@ -54,13 +63,15 @@ e `/api/cron` passam pelo middleware de sessão.
 app/
 ├─ (dash)/dashboard · clientes · contratos · cobrancas · leads · config
 ├─ (dash)/crm/inbox · contatos · funil   # WhatsApp/IG/FB/Mercado Livre
+├─ (dash)/segmentos · segmentos/[id]     # Módulo 1 — inteligência de mercado
 ├─ api/webhooks/asaas · zapsign
 ├─ api/leads/[siteKey]            # ingresso público dos formulários
 └─ api/cron/vencimentos · resumo-semanal
-lib/     asaas · zapsign · supabase · crm · money · pdf · acoes · consultas · notificacoes
+lib/     asaas · zapsign · supabase · crm · ia · rdap · money · pdf · acoes · consultas · notificacoes
 components/  KpiTile · BarRow · StatusChip · FrenteTag · Tabela · WizardContrato · CrmSubNavLink…
-supabase/migrations/0001_init.sql · 0002_crm_modulo.sql
+supabase/migrations/0001_init.sql · 0002_crm_modulo.sql · 0002_segmentos.sql
 scripts/import.ts + planilha-modelo.csv
+docs/crm/  arquitetura · canais · ui · roadmap   # trazido do app CRM separado
 ```
 
 **CRM.** Inbox unificado de conversas de WhatsApp/Instagram/Facebook/Mercado
@@ -69,6 +80,13 @@ adaptadores de canal (que de fato conectam nas APIs externas) ainda não
 existem, então as telas ficam vazias até o primeiro canal ser conectado. Um
 único workspace serve todo o Master (`lib/crm.ts`); vira multi-tenant de
 verdade só se/quando isso for vendido para outros clientes.
+
+**Segmentos (Módulo 1).** Pesquisa de mercado por segmento livre ou por
+cliente — expande um segmento em palavras vizinhas via IA (Anthropic Haiku,
+precisa de `ANTHROPIC_API_KEY`) e checa domínio livre por RDAP (grátis, sem
+chave). Tendência e volume de busca ficam em "aguardando" até Google Trends
+e Keyword Planner saírem da fila de aprovação — a tela nunca inventa esse
+número.
 
 ## Fluxos
 
@@ -103,6 +121,8 @@ D+1 das vencidas (cron diário) e o resumo semanal (segundas).
   pronto para copiar. A `site_key` é gerada pelo banco e nunca muda: trocá-la
   derrubaria os formulários já instalados nos sites dos clientes.
 - **Cobranças e leads** — listagem com filtros, 2ª via e marcação lido/respondido.
+- **Segmentos** — criar, expandir por IA (com a chave configurada) e checar
+  domínio por RDAP (sempre, sem chave nenhuma).
 
 ## Decisões tomadas na implementação
 
