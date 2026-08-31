@@ -69,7 +69,7 @@ app/
 └─ api/cron/vencimentos · resumo-semanal
 lib/     asaas · zapsign · supabase · crm · ia · rdap · money · pdf · acoes · consultas · notificacoes
 components/  KpiTile · BarRow · StatusChip · FrenteTag · Tabela · WizardContrato · CrmSubNavLink…
-supabase/migrations/0001_init.sql · 0002_crm_modulo.sql · 0002_segmentos.sql
+supabase/migrations/0001_init.sql · 0002_crm_modulo.sql · 0003_segmentos.sql
 scripts/import.ts + planilha-modelo.csv
 docs/crm/  arquitetura · canais · ui · roadmap   # trazido do app CRM separado
 ```
