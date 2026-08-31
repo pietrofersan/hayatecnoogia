@@ -37,11 +37,12 @@ NEXT_PUBLIC_SUPABASE_URL=https://ghkckfamnpivlwlcjoez.supabase.co
 A anon key e a service_role saem de Settings → API do projeto. A service_role
 ignora RLS: só em variável de servidor, nunca em `NEXT_PUBLIC_`.
 
-O projeto foi reaproveitado de um app anterior (`omnicrm`) e ainda carrega as
-tabelas dele — `profiles`, `workspaces`, `contacts`, `conversations`,
-`messages`, `pipeline_stages`, `tags`, `channel_accounts`. Nenhuma colide com
-as do Master e nada no código as toca; podem ser removidas quando se confirmar
-que não servem mais.
+O projeto foi reaproveitado de um app anterior (`omnicrm`) e as tabelas dele
+— `profiles`, `workspaces`, `contacts`, `conversations`, `messages`,
+`pipeline_stages`, `tags`, `channel_accounts` — agora são usadas pelo módulo
+**CRM** deste repositório (ver [Estrutura](#estrutura)). Nenhuma colide com as
+do Master; acesso é liberado a qualquer `usuarios_master` via
+`public.is_master()` nas policies (`supabase/migrations/0002_crm_modulo.sql`).
 
 Crie o primeiro usuário pelo painel Auth do Supabase — o login é por
 e-mail/senha e todas as rotas fora de `/login`, `/api/leads`, `/api/webhooks`
@@ -52,14 +53,22 @@ e `/api/cron` passam pelo middleware de sessão.
 ```
 app/
 ├─ (dash)/dashboard · clientes · contratos · cobrancas · leads · config
+├─ (dash)/crm/inbox · contatos · funil   # WhatsApp/IG/FB/Mercado Livre
 ├─ api/webhooks/asaas · zapsign
 ├─ api/leads/[siteKey]            # ingresso público dos formulários
 └─ api/cron/vencimentos · resumo-semanal
-lib/     asaas · zapsign · supabase · money · pdf · acoes · consultas · notificacoes
-components/  KpiTile · BarRow · StatusChip · FrenteTag · Tabela · WizardContrato…
-supabase/migrations/0001_init.sql
+lib/     asaas · zapsign · supabase · crm · money · pdf · acoes · consultas · notificacoes
+components/  KpiTile · BarRow · StatusChip · FrenteTag · Tabela · WizardContrato · CrmSubNavLink…
+supabase/migrations/0001_init.sql · 0002_crm_modulo.sql
 scripts/import.ts + planilha-modelo.csv
 ```
+
+**CRM.** Inbox unificado de conversas de WhatsApp/Instagram/Facebook/Mercado
+Livre — hoje só a UI e o schema, lendo/escrevendo direto no Supabase; os
+adaptadores de canal (que de fato conectam nas APIs externas) ainda não
+existem, então as telas ficam vazias até o primeiro canal ser conectado. Um
+único workspace serve todo o Master (`lib/crm.ts`); vira multi-tenant de
+verdade só se/quando isso for vendido para outros clientes.
 
 ## Fluxos
 

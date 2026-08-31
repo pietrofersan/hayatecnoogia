@@ -10,6 +10,7 @@ const ITENS = [
   { href: '/cobrancas', rotulo: 'Cobranças', icone: '◈' },
   { href: '/leads', rotulo: 'Leads', icone: '◆' },
   { href: '/segmentos', rotulo: 'Segmentos', icone: '⌕' },
+  { href: '/crm', rotulo: 'CRM', icone: '✉' },
   { href: '/config', rotulo: 'Config', icone: '⚙' },
 ] as const
 
