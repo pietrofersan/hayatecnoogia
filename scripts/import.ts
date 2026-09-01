@@ -103,7 +103,7 @@ async function principal() {
 
   const supabase = aplicar ? createClient(url!, chave!) : null
   const asaasChave = process.env.ASAAS_API_KEY
-  const asaasBase = process.env.ASAAS_BASE_URL ?? 'https://api-sandbox.asaas.com/v3'
+  const asaasBase = process.env.ASAAS_BASE_URL || 'https://api-sandbox.asaas.com/v3'
 
   let importados = 0
 
