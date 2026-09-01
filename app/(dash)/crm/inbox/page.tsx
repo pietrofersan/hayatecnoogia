@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { Painel, Vazio } from '@/components/Painel'
 import { CRM_WORKSPACE_ID, ROTULO_CANAL } from '@/lib/crm'
 import { supabaseServidor } from '@/lib/supabase'
@@ -48,27 +49,32 @@ export default async function InboxPage() {
               c.window_expires_at && new Date(c.window_expires_at) < new Date()
             const status = ROTULO_STATUS[c.status]
             return (
-              <li key={c.id} className="flex items-center gap-3 px-5 py-3 hover:bg-linha/30">
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="truncate text-sm font-medium text-marfim">
-                      {c.contacts?.name ?? 'Sem nome'}
-                    </span>
-                    <span className="text-xs text-apagado">#{c.ticket_number}</span>
-                    {janelaExpirada && (
-                      <span className="rounded bg-critico/15 px-1.5 py-0.5 text-[10px] text-critico">
-                        FORA DA JANELA DE 24H
+              <li key={c.id}>
+                <Link
+                  href={`/crm/inbox/${c.id}`}
+                  className="flex items-center gap-3 px-5 py-3 hover:bg-linha/30"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="truncate text-sm font-medium text-marfim">
+                        {c.contacts?.name ?? 'Sem nome'}
                       </span>
-                    )}
+                      <span className="text-xs text-apagado">#{c.ticket_number}</span>
+                      {janelaExpirada && (
+                        <span className="rounded bg-critico/15 px-1.5 py-0.5 text-[10px] text-critico">
+                          FORA DA JANELA DE 24H
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-apagado">
+                      {ROTULO_CANAL[c.channel_accounts?.channel ?? ''] ?? '—'}
+                      {c.pipeline_stages && ` · ${c.pipeline_stages.name}`}
+                    </p>
                   </div>
-                  <p className="text-xs text-apagado">
-                    {ROTULO_CANAL[c.channel_accounts?.channel ?? ''] ?? '—'}
-                    {c.pipeline_stages && ` · ${c.pipeline_stages.name}`}
-                  </p>
-                </div>
-                <span className={`shrink-0 text-xs ${status.classe}`}>
-                  <span aria-hidden>{status.icone}</span> {status.rotulo}
-                </span>
+                  <span className={`shrink-0 text-xs ${status.classe}`}>
+                    <span aria-hidden>{status.icone}</span> {status.rotulo}
+                  </span>
+                </Link>
               </li>
             )
           })}

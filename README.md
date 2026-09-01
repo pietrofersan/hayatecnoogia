@@ -71,7 +71,7 @@ e `/api/cron` passam pelo middleware de sessão.
 ```
 app/
 ├─ (dash)/dashboard · clientes · contratos · cobrancas · leads · config
-├─ (dash)/crm/inbox · contatos · funil   # WhatsApp/IG/FB/Mercado Livre
+├─ (dash)/crm/inbox · inbox/[id] · contatos · funil  # WhatsApp/IG/FB/ML
 ├─ (dash)/segmentos · segmentos/[id]     # Módulo 1 — inteligência de mercado
 ├─ api/webhooks/asaas · zapsign
 ├─ api/leads/[siteKey]            # ingresso público dos formulários
@@ -84,11 +84,14 @@ docs/crm/  arquitetura · canais · ui · roadmap   # trazido do app CRM separad
 ```
 
 **CRM.** Inbox unificado de conversas de WhatsApp/Instagram/Facebook/Mercado
-Livre — hoje só a UI e o schema, lendo/escrevendo direto no Supabase; os
-adaptadores de canal (que de fato conectam nas APIs externas) ainda não
-existem, então as telas ficam vazias até o primeiro canal ser conectado. Um
-único workspace serve todo o Master (`lib/crm.ts`); vira multi-tenant de
-verdade só se/quando isso for vendido para outros clientes.
+Livre — lista, thread da conversa (bolhas, divisor de data, status de
+entrega), resposta, status, estágio do funil e atribuição de agente, tudo
+direto no Supabase. Os adaptadores de canal (que de fato conectam nas APIs
+externas) ainda não existem: nada entra sozinho e **a resposta não sai** —
+ela fica gravada como `na fila`, e quem vai entregar e mudar o status é o
+adaptador, quando existir. A tela diz isso; não finge envio. Um único
+workspace serve todo o Master (`lib/crm.ts`); vira multi-tenant de verdade só
+se/quando isso for vendido para outros clientes.
 
 **Segmentos (Módulo 1).** Pesquisa de mercado por segmento livre ou por
 cliente — expande um segmento em palavras vizinhas via IA (Anthropic Haiku,

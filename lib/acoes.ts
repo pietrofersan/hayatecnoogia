@@ -673,3 +673,117 @@ export async function checarDominiosDaPalavra(palavraId: string, termo: string) 
 
   revalidatePath(`/segmentos`)
 }
+
+// Módulo CRM ---------------------------------------------------------
+
+/**
+ * Registra a resposta do agente na conversa.
+ *
+ * A mensagem nasce `pending` de propósito: entregar de fato depende de um
+ * adaptador de canal (WhatsApp/Instagram/…), que ainda não existe — ver
+ * docs/crm/arquitetura.md. Quando o adaptador entrar, é ele quem muda o
+ * status para `sent`/`delivered` e preenche o `external_message_id`. Até
+ * lá a tela diz isso na cara do usuário, em vez de fingir que enviou.
+ */
+export async function responderConversa(
+  conversaId: string,
+  corpo: string,
+): Promise<Resultado> {
+  const texto = corpo.trim()
+  if (!texto) return { ok: false, erro: 'Escreva a mensagem antes de enviar.' }
+
+  const supabase = await supabaseServidor()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const { data: conversa } = await supabase
+    .from('conversations')
+    .select('id, workspace_id')
+    .eq('id', conversaId)
+    .single()
+
+  if (!conversa) return { ok: false, erro: 'Conversa não encontrada.' }
+
+  const agora = new Date().toISOString()
+  const { error } = await supabase.from('messages').insert({
+    conversation_id: conversa.id,
+    workspace_id: conversa.workspace_id,
+    direction: 'outbound',
+    sender_type: 'agent',
+    sender_id: user?.id ?? null,
+    body: texto,
+    status: 'pending',
+  })
+
+  if (error) return { ok: false, erro: error.message }
+
+  await supabase
+    .from('conversations')
+    .update({ last_message_at: agora })
+    .eq('id', conversa.id)
+
+  revalidatePath(`/crm/inbox/${conversaId}`)
+  revalidatePath('/crm/inbox')
+  return { ok: true }
+}
+
+/** Ativo / pendente / encerrado — cabeçalho da thread (docs/crm/ui.md). */
+export async function mudarStatusConversa(
+  conversaId: string,
+  status: 'open' | 'pending' | 'closed',
+): Promise<Resultado> {
+  const supabase = await supabaseServidor()
+  const { error } = await supabase
+    .from('conversations')
+    .update({ status })
+    .eq('id', conversaId)
+
+  if (error) return { ok: false, erro: error.message }
+
+  revalidatePath(`/crm/inbox/${conversaId}`)
+  revalidatePath('/crm/inbox')
+  return { ok: true }
+}
+
+/** Move a conversa de estágio no funil (a coluna do /crm/funil). */
+export async function moverConversaDeEstagio(
+  conversaId: string,
+  estagioId: string | null,
+): Promise<Resultado> {
+  const supabase = await supabaseServidor()
+  const { error } = await supabase
+    .from('conversations')
+    .update({ pipeline_stage_id: estagioId })
+    .eq('id', conversaId)
+
+  if (error) return { ok: false, erro: error.message }
+
+  revalidatePath(`/crm/inbox/${conversaId}`)
+  revalidatePath('/crm/funil')
+  return { ok: true }
+}
+
+/** Assume o atendimento (ou devolve para a fila, com `assumir: false`). */
+export async function assumirConversa(
+  conversaId: string,
+  assumir: boolean,
+): Promise<Resultado> {
+  const supabase = await supabaseServidor()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (assumir && !user) return { ok: false, erro: 'Sessão expirada.' }
+
+  const { error } = await supabase
+    .from('conversations')
+    .update({ assigned_to: assumir ? user!.id : null })
+    .eq('id', conversaId)
+
+  if (error) return { ok: false, erro: error.message }
+
+  revalidatePath(`/crm/inbox/${conversaId}`)
+  revalidatePath('/crm/inbox')
+  return { ok: true }
+}

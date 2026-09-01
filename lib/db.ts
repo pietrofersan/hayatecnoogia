@@ -210,3 +210,81 @@ export const ROTULO_TENDENCIA: Record<TendenciaPalavra, string> = {
   estavel: '● Estável',
   caindo: '▼ Caindo',
 }
+
+// Módulo CRM — modelo único de conversa (veio do app "omnicrm") ------
+
+export type CanalCrm =
+  | 'whatsapp_qr'
+  | 'whatsapp_cloud'
+  | 'instagram'
+  | 'facebook'
+  | 'mercado_livre'
+
+export type StatusConversa = 'open' | 'pending' | 'closed'
+export type DirecaoMensagem = 'inbound' | 'outbound'
+export type RemetenteMensagem = 'contact' | 'agent' | 'system'
+export type StatusMensagem = 'pending' | 'sent' | 'delivered' | 'read' | 'failed'
+
+export type ContatoCrm = {
+  id: string
+  workspace_id: string
+  channel: CanalCrm
+  external_id: string
+  name: string | null
+  avatar_url: string | null
+  phone: string | null
+  created_at: string
+}
+
+export type EstagioFunil = {
+  id: string
+  workspace_id: string
+  name: string
+  color: string
+  sort_order: number
+  created_at: string
+}
+
+export type ConversaCrm = {
+  id: string
+  ticket_number: number
+  workspace_id: string
+  contact_id: string
+  channel_account_id: string
+  status: StatusConversa
+  assigned_to: string | null
+  pipeline_stage_id: string | null
+  last_message_at: string | null
+  window_expires_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type MensagemCrm = {
+  id: string
+  conversation_id: string
+  workspace_id: string
+  direction: DirecaoMensagem
+  sender_type: RemetenteMensagem
+  sender_id: string | null
+  body: string | null
+  media_url: string | null
+  external_message_id: string | null
+  status: StatusMensagem
+  created_at: string
+}
+
+export const ROTULO_STATUS_CONVERSA: Record<StatusConversa, string> = {
+  open: 'Ativo',
+  pending: 'Pendente',
+  closed: 'Encerrado',
+}
+
+/** Ícone de entrega, no padrão que a doc de UI descreve (docs/crm/ui.md). */
+export const ROTULO_STATUS_MENSAGEM: Record<StatusMensagem, string> = {
+  pending: '◷ na fila',
+  sent: '✓ enviada',
+  delivered: '✓✓ entregue',
+  read: '✓✓ lida',
+  failed: '! falhou',
+}
