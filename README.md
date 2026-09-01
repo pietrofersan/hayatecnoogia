@@ -53,6 +53,15 @@ próprio, um adaptador por canal) que nasceu naquele repo está copiada em
 referência de como os adaptadores de WhatsApp/Instagram/Facebook/Mercado
 Livre vão se encaixar aqui.
 
+Aquele app tinha **cadastro público**: o signUp chamava
+`join_default_workspace()`, que põe quem chamou dentro do workspace do CRM —
+o mesmo que este módulo usa. Como a função é `SECURITY DEFINER` e estava
+liberada para `authenticated`, qualquer conta criada neste projeto Supabase
+podia chamá-la direto pela anon key e virar membro (admin, enquanto o
+workspace estivesse vazio) das conversas e contatos reais. A migração
+`0004_fecha_auto_ingresso_crm.sql` tira a permissão: no Master quem entra no
+CRM entra por `public.is_master()`.
+
 Crie o primeiro usuário pelo painel Auth do Supabase — o login é por
 e-mail/senha e todas as rotas fora de `/login`, `/api/leads`, `/api/webhooks`
 e `/api/cron` passam pelo middleware de sessão.
@@ -69,7 +78,7 @@ app/
 └─ api/cron/vencimentos · resumo-semanal
 lib/     asaas · zapsign · supabase · crm · ia · rdap · money · pdf · acoes · consultas · notificacoes
 components/  KpiTile · BarRow · StatusChip · FrenteTag · Tabela · WizardContrato · CrmSubNavLink…
-supabase/migrations/0001_init.sql · 0002_crm_modulo.sql · 0003_segmentos.sql
+supabase/migrations/0001_init · 0002_crm_modulo · 0003_segmentos · 0004_fecha_auto_ingresso_crm
 scripts/import.ts + planilha-modelo.csv
 docs/crm/  arquitetura · canais · ui · roadmap   # trazido do app CRM separado
 ```
