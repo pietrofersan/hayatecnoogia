@@ -98,8 +98,9 @@ workspace serve todo o Master (`lib/crm.ts`); vira multi-tenant de verdade só
 se/quando isso for vendido para outros clientes.
 
 **Segmentos (Módulo 1).** Pesquisa de mercado por segmento livre ou por
-cliente — expande um segmento em palavras vizinhas via IA (Anthropic Haiku,
-precisa de `ANTHROPIC_API_KEY`) e checa domínio livre por RDAP (grátis, sem
+cliente — expande um segmento em palavras vizinhas via IA (Gemini Flash,
+grátis em [aistudio.google.com](https://aistudio.google.com), sem cartão;
+precisa de `GEMINI_API_KEY`) e checa domínio livre por RDAP (grátis, sem
 chave). Tendência e volume de busca ficam em "aguardando" até Google Trends
 e Keyword Planner saírem da fila de aprovação — a tela nunca inventa esse
 número.

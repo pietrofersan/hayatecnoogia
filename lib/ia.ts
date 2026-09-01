@@ -3,55 +3,69 @@ import { env } from './env'
 /**
  * Expansão de segmento em palavras vizinhas (Compilado geral, Parte 1 módulo
  * 1 e Parte 6.1 caminho A — API de mensagens simples, sem agente).
- * Haiku 4.5 por recomendação da Parte 15: tarefa mecânica, alto volume,
- * resposta curta — não é texto que vai ao ar com a marca do cliente.
+ *
+ * Gemini Flash em vez de um modelo pago: é uma tarefa mecânica, de baixo
+ * risco (nunca vai ao ar com a marca do cliente) e baixo volume — cabe
+ * folgado na camada gratuita do Google AI Studio (aistudio.google.com),
+ * sem cartão cadastrado. Se um dia o volume justificar um modelo melhor,
+ * troca-se só este arquivo.
  */
 
-const MODELO = 'claude-haiku-4-5-20251001'
+const MODELO = 'gemini-2.5-flash'
+const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODELO}:generateContent`
 
 export class ErroIA extends Error {}
 
+type RespostaGemini = {
+  candidates?: {
+    content?: { parts?: { text?: string }[] }
+    finishReason?: string
+  }[]
+  promptFeedback?: { blockReason?: string }
+}
+
 export async function expandirSegmento(nomeSegmento: string): Promise<string[]> {
-  const chave = env.anthropicApiKey()
+  const chave = env.geminiApiKey()
   if (!chave) {
-    throw new ErroIA('ANTHROPIC_API_KEY não configurada — veja Config.')
+    throw new ErroIA('GEMINI_API_KEY não configurada — veja Config.')
   }
 
-  const resposta = await fetch('https://api.anthropic.com/v1/messages', {
+  const resposta = await fetch(`${ENDPOINT}?key=${chave}`, {
     method: 'POST',
-    headers: {
-      'x-api-key': chave,
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json',
-    },
+    headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
-      model: MODELO,
-      max_tokens: 1024,
-      messages: [
+      contents: [
         {
-          role: 'user',
-          content:
-            `Liste de 15 a 25 termos de busca (palavras-chave) intimamente ` +
-            `relacionados ao segmento de mercado "${nomeSegmento}", em ` +
-            `português do Brasil — sinônimos, especializações e serviços ` +
-            `correlatos que um cliente desse segmento buscaria no Google. ` +
-            `Responda só com a lista, um termo por linha, sem numeração, ` +
-            `sem marcadores, sem explicação.`,
+          parts: [
+            {
+              text:
+                `Liste de 15 a 25 termos de busca (palavras-chave) intimamente ` +
+                `relacionados ao segmento de mercado "${nomeSegmento}", em ` +
+                `português do Brasil — sinônimos, especializações e serviços ` +
+                `correlatos que um cliente desse segmento buscaria no Google. ` +
+                `Responda só com a lista, um termo por linha, sem numeração, ` +
+                `sem marcadores, sem explicação.`,
+            },
+          ],
         },
       ],
+      generationConfig: { temperature: 0.4, maxOutputTokens: 1024 },
     }),
     signal: AbortSignal.timeout(30_000),
   })
 
   if (!resposta.ok) {
     const corpo = await resposta.text()
-    throw new ErroIA(`Anthropic ${resposta.status}: ${corpo}`)
+    throw new ErroIA(`Gemini ${resposta.status}: ${corpo}`)
   }
 
-  const dados = (await resposta.json()) as {
-    content: { type: string; text?: string }[]
+  const dados = (await resposta.json()) as RespostaGemini
+
+  if (dados.promptFeedback?.blockReason) {
+    throw new ErroIA(`Gemini bloqueou a resposta: ${dados.promptFeedback.blockReason}`)
   }
-  const texto = dados.content.find((b) => b.type === 'text')?.text ?? ''
+
+  const texto = dados.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? ''
 
   return texto
     .split('\n')

@@ -76,7 +76,7 @@ export default async function SegmentoDetalhe({
         {listaPalavras.length === 0 ? (
           <Vazio>
             Nenhuma palavra ainda. Clique em &ldquo;Expandir com IA&rdquo; para gerar as
-            primeiras — precisa de <code className="text-nevoa">ANTHROPIC_API_KEY</code>{' '}
+            primeiras — precisa de <code className="text-nevoa">GEMINI_API_KEY</code>{' '}
             configurada.
           </Vazio>
         ) : (
