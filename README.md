@@ -44,16 +44,18 @@ O projeto foi reaproveitado de um app anterior (`omnicrm`) e as tabelas dele
 do Master; acesso é liberado a qualquer `usuarios_master` via
 `public.is_master()` nas policies (`supabase/migrations/0002_crm_modulo.sql`).
 
-O CRM chegou a existir como app separado (`pietrofersan/haya-app`, também
-deployado à parte na Vercel) — decisão consciente: ele fica **parado, sem
-ser apagado**, e todo o desenvolvimento segue só aqui dentro do Master, em
-`app/(dash)/crm`. A documentação de arquitetura da mensageria (motor
-próprio, um adaptador por canal) que nasceu naquele repo está copiada em
+O CRM chegou a existir como app separado (`omnicrm`, depois `haya-app`, com
+deploy próprio na Vercel). Foi desligado: os projetos da Vercel e os
+repositórios não existem mais, e todo o desenvolvimento segue aqui dentro do
+Master, em `app/(dash)/crm`. O que era só de lá veio junto e **este repo é a
+única cópia**: o schema completo da mensageria está em
+`0002_crm_modulo.sql` (tipos, tabelas, índices, funções, triggers e RLS) e a
+documentação de arquitetura (motor próprio, um adaptador por canal) em
 [docs/crm](docs/crm/arquitetura.md) — escrita para o app separado, ainda é a
 referência de como os adaptadores de WhatsApp/Instagram/Facebook/Mercado
 Livre vão se encaixar aqui.
 
-Aquele app tinha **cadastro público**: o signUp chamava
+Aquele app tinha **cadastro público**, e isso deixou marca no banco: o signUp chamava
 `join_default_workspace()`, que põe quem chamou dentro do workspace do CRM —
 o mesmo que este módulo usa. Como a função é `SECURITY DEFINER` e estava
 liberada para `authenticated`, qualquer conta criada neste projeto Supabase
@@ -73,12 +75,14 @@ app/
 ├─ (dash)/dashboard · clientes · contratos · cobrancas · leads · config
 ├─ (dash)/crm/inbox · inbox/[id] · contatos · funil  # WhatsApp/IG/FB/ML
 ├─ (dash)/segmentos · segmentos/[id]     # Módulo 1 — inteligência de mercado
+├─ (dash)/dominios                       # Módulo 2 — radar de domínios
 ├─ api/webhooks/asaas · zapsign
 ├─ api/leads/[siteKey]            # ingresso público dos formulários
-└─ api/cron/vencimentos · resumo-semanal
-lib/     asaas · zapsign · supabase · crm · ia · rdap · money · pdf · acoes · consultas · notificacoes
+└─ api/cron/vencimentos · resumo-semanal · radar-dominios
+lib/     asaas · zapsign · supabase · crm · ia · rdap · radar · money · pdf · acoes · consultas · notificacoes
 components/  KpiTile · BarRow · StatusChip · FrenteTag · Tabela · WizardContrato · CrmSubNavLink…
-supabase/migrations/0001_init · 0002_crm_modulo · 0003_segmentos · 0004_fecha_auto_ingresso_crm
+supabase/migrations/0001_init · 0002_crm_modulo · 0003_segmentos
+                    0004_fecha_auto_ingresso_crm · 0005_radar_dominios
 scripts/import.ts + planilha-modelo.csv
 docs/crm/  arquitetura · canais · ui · roadmap   # trazido do app CRM separado
 ```
@@ -99,6 +103,13 @@ precisa de `ANTHROPIC_API_KEY`) e checa domínio livre por RDAP (grátis, sem
 chave). Tendência e volume de busca ficam em "aguardando" até Google Trends
 e Keyword Planner saírem da fila de aprovação — a tela nunca inventa esse
 número.
+
+**Radar de domínios (Módulo 2).** A checagem do Segmentos é uma foto; o
+radar é o filme. Uma lista de domínios que interessam — livres para
+registrar, ou ocupados com data de expiração conhecida — reconsultada por
+RDAP todo dia às 9h pelo cron. Só mudança de estado entra no histórico, e
+"virou livre" dispara aviso interno: é a janela para registrar. Clicar num
+chip de extensão em Segmentos joga aquele domínio direto no radar.
 
 ## Fluxos
 
@@ -135,6 +146,8 @@ D+1 das vencidas (cron diário) e o resumo semanal (segundas).
 - **Cobranças e leads** — listagem com filtros, 2ª via e marcação lido/respondido.
 - **Segmentos** — criar, expandir por IA (com a chave configurada) e checar
   domínio por RDAP (sempre, sem chave nenhuma).
+- **Domínios** — vigiar domínio, ver estado/expiração/registrador, checar na
+  hora e receber aviso interno quando um deles ficar livre.
 
 ## Decisões tomadas na implementação
 

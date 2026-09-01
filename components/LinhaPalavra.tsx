@@ -2,13 +2,33 @@
 
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
-import { checarDominiosDaPalavra, marcarInteressante } from '@/lib/acoes'
+import {
+  checarDominiosDaPalavra,
+  marcarInteressante,
+  vigiarDominioDaPalavra,
+} from '@/lib/acoes'
 import { ROTULO_TENDENCIA, type ChecagemDominio, type PalavraChave } from '@/lib/db'
+import { normalizarTermo } from '@/lib/rdap'
 import { Celula, Linha } from './Tabela'
 
 const EXTENSOES = ['com', 'com.br', 'net'] as const
 
-function ChipDominio({ extensao, checagem }: { extensao: string; checagem?: ChecagemDominio }) {
+/**
+ * Chip de extensão. Depois de checado vira botão: clicar põe o domínio no
+ * radar (Módulo 2), que reconsulta todo dia — inclusive o que está
+ * registrado, para avisar quando expirar.
+ */
+function ChipDominio({
+  extensao,
+  checagem,
+  onVigiar,
+  vigiando,
+}: {
+  extensao: string
+  checagem?: ChecagemDominio
+  onVigiar: () => void
+  vigiando: boolean
+}) {
   if (!checagem || checagem.disponivel === null) {
     return (
       <span className="rounded border border-linha px-1.5 py-0.5 text-[10px] text-apagado">
@@ -17,16 +37,19 @@ function ChipDominio({ extensao, checagem }: { extensao: string; checagem?: Chec
     )
   }
   return (
-    <span
-      className={`rounded border px-1.5 py-0.5 text-[10px] ${
+    <button
+      type="button"
+      onClick={onVigiar}
+      disabled={vigiando}
+      className={`rounded border px-1.5 py-0.5 text-[10px] disabled:opacity-50 ${
         checagem.disponivel
-          ? 'border-ok/40 text-ok'
-          : 'border-critico/40 text-critico'
+          ? 'border-ok/40 text-ok hover:bg-ok/10'
+          : 'border-critico/40 text-critico hover:bg-critico/10'
       }`}
-      title={checagem.disponivel ? 'Domínio livre' : 'Domínio registrado'}
+      title={`${checagem.disponivel ? 'Domínio livre' : 'Domínio registrado'} — clique para vigiar no radar`}
     >
       {checagem.disponivel ? '✓' : '×'} .{extensao}
-    </span>
+    </button>
   )
 }
 
@@ -40,7 +63,9 @@ export function LinhaPalavra({
   const router = useRouter()
   const [checando, iniciarChecagem] = useTransition()
   const [marcando, iniciarMarcacao] = useTransition()
+  const [vigiando, iniciarVigia] = useTransition()
   const [interessante, setInteressante] = useState(palavra.interessante)
+  const [aviso, setAviso] = useState<string | null>(null)
 
   const porExtensao = new Map(checagens.map((c) => [c.extensao, c]))
 
@@ -77,7 +102,22 @@ export function LinhaPalavra({
       <Celula>
         <div className="flex flex-wrap items-center gap-1.5">
           {EXTENSOES.map((ext) => (
-            <ChipDominio key={ext} extensao={ext} checagem={porExtensao.get(ext)} />
+            <ChipDominio
+              key={ext}
+              extensao={ext}
+              checagem={porExtensao.get(ext)}
+              vigiando={vigiando}
+              onVigiar={() =>
+                iniciarVigia(async () => {
+                  setAviso(null)
+                  const r = await vigiarDominioDaPalavra(
+                    palavra.id,
+                    `${normalizarTermo(palavra.termo)}.${ext}`,
+                  )
+                  setAviso(r.ok ? 'no radar ✓' : r.erro)
+                })
+              }
+            />
           ))}
           <button
             onClick={() =>
@@ -91,6 +131,7 @@ export function LinhaPalavra({
           >
             {checando ? 'checando…' : 'checar'}
           </button>
+          {aviso && <span className="text-[10px] text-apagado">{aviso}</span>}
         </div>
       </Celula>
     </Linha>

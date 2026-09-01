@@ -17,7 +17,34 @@ export async function checarDominio(
   termo: string,
   extensao: string,
 ): Promise<ResultadoRdap> {
-  const dominio = `${normalizarTermo(termo)}.${extensao}`
+  const { estado } = await consultarDominio(`${normalizarTermo(termo)}.${extensao}`)
+  return estado
+}
+
+export type ConsultaRdap = {
+  estado: ResultadoRdap
+  /** Quando o registro atual vence — só vem em domínio registrado. */
+  expiraEm: string | null
+  registradoEm: string | null
+  registrador: string | null
+}
+
+type EventoRdap = { eventAction?: string; eventDate?: string }
+type EntidadeRdap = { roles?: string[]; vcardArray?: unknown }
+
+/**
+ * Consulta completa de um domínio já formado ("hayatecnologia.com.br").
+ * Além do livre/registrado, extrai a data de expiração — é ela que
+ * transforma o radar em algo útil: dá para vigiar um domínio ocupado e
+ * saber quando ele entra em disputa.
+ */
+export async function consultarDominio(dominio: string): Promise<ConsultaRdap> {
+  const vazio: ConsultaRdap = {
+    estado: 'indeterminado',
+    expiraEm: null,
+    registradoEm: null,
+    registrador: null,
+  }
 
   try {
     const resposta = await fetch(`https://rdap.org/domain/${dominio}`, {
@@ -25,12 +52,48 @@ export async function checarDominio(
       signal: AbortSignal.timeout(10_000),
     })
 
-    if (resposta.status === 404) return 'disponivel'
-    if (resposta.status === 200) return 'registrado'
-    return 'indeterminado'
+    if (resposta.status === 404) return { ...vazio, estado: 'disponivel' }
+    if (resposta.status !== 200) return vazio
+
+    const corpo = (await resposta.json()) as {
+      events?: EventoRdap[]
+      entities?: EntidadeRdap[]
+    }
+
+    return {
+      estado: 'registrado',
+      expiraEm: dataDoEvento(corpo.events, 'expiration'),
+      registradoEm: dataDoEvento(corpo.events, 'registration'),
+      registrador: nomeDoRegistrador(corpo.entities),
+    }
   } catch {
-    return 'indeterminado'
+    return vazio
   }
+}
+
+function dataDoEvento(eventos: EventoRdap[] | undefined, acao: string): string | null {
+  const data = eventos?.find((e) => e.eventAction === acao)?.eventDate
+  if (!data) return null
+  const quando = new Date(data)
+  return Number.isNaN(quando.getTime()) ? null : quando.toISOString()
+}
+
+/**
+ * O nome do registrador vem num vCard (RFC 7095): um array de arrays em
+ * que cada entrada é [propriedade, params, tipo, valor]. Queremos o `fn`
+ * da entidade com papel "registrar".
+ */
+function nomeDoRegistrador(entidades: EntidadeRdap[] | undefined): string | null {
+  const registrar = entidades?.find((e) => e.roles?.includes('registrar'))
+  const vcard = registrar?.vcardArray
+  if (!Array.isArray(vcard) || !Array.isArray(vcard[1])) return null
+
+  for (const campo of vcard[1] as unknown[]) {
+    if (Array.isArray(campo) && campo[0] === 'fn' && typeof campo[3] === 'string') {
+      return campo[3]
+    }
+  }
+  return null
 }
 
 /** "Comunicação Visual" -> "comunicacaovisual" — só o que um domínio aceita. */

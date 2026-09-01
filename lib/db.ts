@@ -288,3 +288,36 @@ export const ROTULO_STATUS_MENSAGEM: Record<StatusMensagem, string> = {
   read: '✓✓ lida',
   failed: '! falhou',
 }
+
+// Módulo 2 — Radar de domínios ---------------------------------------
+
+export type EstadoDominio = 'livre' | 'registrado' | 'indeterminado'
+
+export type DominioRadar = {
+  id: string
+  dominio: string
+  motivo: string | null
+  cliente_id: string | null
+  palavra_id: string | null
+  estado: EstadoDominio
+  expira_em: string | null
+  registrado_em: string | null
+  registrador: string | null
+  checado_em: string | null
+  ativo: boolean
+  criado_em: string
+}
+
+export type EventoDominio = {
+  id: number
+  dominio_id: string
+  de: EstadoDominio | null
+  para: EstadoDominio
+  em: string
+}
+
+export const ROTULO_ESTADO_DOMINIO: Record<EstadoDominio, string> = {
+  livre: '✓ Livre',
+  registrado: '● Registrado',
+  indeterminado: '? Sem resposta',
+}

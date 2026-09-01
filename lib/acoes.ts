@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import * as asaas from './asaas'
-import type { Cliente, Contrato, TemplateContrato } from './db'
+import type { Cliente, Contrato, DominioRadar, TemplateContrato } from './db'
 import { moldurarContrato, htmlParaPdf } from './pdf'
 import { supabaseServidor } from './supabase'
 import { formatBRL, parseParaCentavos, proximoVencimento } from './money'
@@ -12,6 +12,7 @@ import { aplicarMergeTags, criarDocumento } from './zapsign'
 import { env } from './env'
 import { ErroIA, expandirSegmento } from './ia'
 import { EXTENSOES_PADRAO, checarDominio } from './rdap'
+import { reconsultarRadar } from './radar'
 
 export type Resultado = { ok: true; id?: string } | { ok: false; erro: string }
 
@@ -785,5 +786,91 @@ export async function assumirConversa(
 
   revalidatePath(`/crm/inbox/${conversaId}`)
   revalidatePath('/crm/inbox')
+  return { ok: true }
+}
+
+// Módulo 2 — Radar de domínios ---------------------------------------
+
+/**
+ * Põe um domínio no radar e já faz a primeira consulta, para a linha
+ * nascer com estado de verdade em vez de "indeterminado".
+ */
+export async function adicionarAoRadar(
+  _estado: unknown,
+  formData: FormData,
+): Promise<Resultado> {
+  const bruto = texto(formData, 'dominio').toLowerCase().replace(/^https?:\/\//, '')
+  const dominio = bruto.replace(/\/.*$/, '').trim()
+
+  if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(dominio)) {
+    return { ok: false, erro: 'Informe um domínio completo, com extensão (ex.: haya.com.br).' }
+  }
+
+  const supabase = await supabaseServidor()
+  const { data, error } = await supabase
+    .from('dominios_radar')
+    .insert({
+      dominio,
+      motivo: texto(formData, 'motivo') || null,
+      cliente_id: texto(formData, 'cliente_id') || null,
+    })
+    .select('id, dominio, estado')
+    .single()
+
+  if (error) {
+    return {
+      ok: false,
+      erro: error.code === '23505' ? 'Esse domínio já está no radar.' : error.message,
+    }
+  }
+
+  await reconsultarRadar(supabase, [data as DominioRadar])
+  revalidatePath('/dominios')
+  return { ok: true, id: data.id }
+}
+
+/** Vigiar um domínio que saiu da checagem de uma palavra do segmento. */
+export async function vigiarDominioDaPalavra(
+  palavraId: string,
+  dominio: string,
+): Promise<Resultado> {
+  const supabase = await supabaseServidor()
+  const { data, error } = await supabase
+    .from('dominios_radar')
+    .insert({ dominio, palavra_id: palavraId, motivo: 'Veio da pesquisa de segmento' })
+    .select('id, dominio, estado')
+    .single()
+
+  if (error) {
+    return {
+      ok: false,
+      erro: error.code === '23505' ? 'Esse domínio já está no radar.' : error.message,
+    }
+  }
+
+  await reconsultarRadar(supabase, [data as DominioRadar])
+  revalidatePath('/dominios')
+  return { ok: true, id: data.id }
+}
+
+/** Liga/desliga o acompanhamento sem perder o histórico do domínio. */
+export async function alternarRadar(dominioId: string, ativo: boolean) {
+  const supabase = await supabaseServidor()
+  await supabase.from('dominios_radar').update({ ativo }).eq('id', dominioId)
+  revalidatePath('/dominios')
+}
+
+/** "Checar agora" — mesma rotina do cron, disparada à mão. */
+export async function checarRadarAgora(dominioId?: string): Promise<Resultado> {
+  const supabase = await supabaseServidor()
+
+  let consulta = supabase.from('dominios_radar').select('id, dominio, estado').eq('ativo', true)
+  if (dominioId) consulta = consulta.eq('id', dominioId)
+
+  const { data, error } = await consulta
+  if (error) return { ok: false, erro: error.message }
+
+  await reconsultarRadar(supabase, (data ?? []) as DominioRadar[])
+  revalidatePath('/dominios')
   return { ok: true }
 }
