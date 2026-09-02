@@ -83,7 +83,9 @@ lib/     asaas · zapsign · supabase · crm · ia · rdap · radar · money · 
 components/  KpiTile · BarRow · StatusChip · FrenteTag · Tabela · WizardContrato · CrmSubNavLink…
 supabase/migrations/0001_init · 0002_crm_modulo · 0003_segmentos
                     0004_fecha_auto_ingresso_crm · 0005_radar_dominios
+                    0006_whatsapp_sessoes · 0007_tags_externas
 scripts/import.ts + planilha-modelo.csv
+services/whatsapp-adapter/   # processo à parte — Baileys, deploy na Render
 docs/crm/  arquitetura · canais · ui · roadmap   # trazido do app CRM separado
 ```
 
@@ -104,6 +106,15 @@ precisa de `GEMINI_API_KEY`) e checa domínio livre por RDAP (grátis, sem
 chave). Tendência e volume de busca ficam em "aguardando" até Google Trends
 e Keyword Planner saírem da fila de aprovação — a tela nunca inventa esse
 número.
+
+**WhatsApp por QR Code.** Sem custo por mensagem e sem a janela de 24h da
+Cloud API da Meta (mudou dia 1º de setembro) — conexão não-oficial via
+[Baileys](https://github.com/WhiskeySockets/Baileys), o mesmo protocolo do
+WhatsApp Web. Roda separado, em `services/whatsapp-adapter/` (README lá),
+porque precisa de um processo vivo 24/7 — a Vercel é serverless e não
+mantém isso. Espelha direto nas tabelas do CRM (contatos, conversas,
+mensagens, etiquetas → `tags`); nenhum schema novo pro CRM em si, só
+`whatsapp_sessoes` para a credencial da sessão sobreviver a redeploy.
 
 **Radar de domínios (Módulo 2).** A checagem do Segmentos é uma foto; o
 radar é o filme. Uma lista de domínios que interessam — livres para

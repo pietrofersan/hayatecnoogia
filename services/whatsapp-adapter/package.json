@@ -1,0 +1,26 @@
+{
+  "name": "haya-whatsapp-adapter",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Conexão WhatsApp por QR Code (Baileys) — espelha contatos, conversas, mensagens e etiquetas no CRM do HAYA Master.",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "dev": "tsc -p tsconfig.json --watch"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.47.10",
+    "baileys": "7.0.0-rc14",
+    "express": "^4.21.2",
+    "pino": "^9.6.0",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.10.7",
+    "@types/qrcode": "^1.5.5",
+    "typescript": "^5.7.3"
+  }
+}
