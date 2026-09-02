@@ -1,6 +1,7 @@
 import makeWASocket, { Browsers, DisconnectReason, fetchLatestBaileysVersion } from 'baileys'
 import type { WASocket } from 'baileys'
 import { Boom } from '@hapi/boom'
+import QRCode from 'qrcode'
 import { apagarSessao, usarAuthStateSupabase } from './authState.js'
 import { logger } from './logger.js'
 import { iniciarOutbox } from './outbox.js'
@@ -51,7 +52,12 @@ export async function conectar(canalId: string): Promise<void> {
       qrAtual = qr
       estadoAtual = 'pending'
       await atualizarCanal(canalId, { status: 'pending' })
-      logger.info('novo QR gerado — escaneie em /qr')
+      // Direto no log — não depende de porta nenhuma exposta. Num VPS sem
+      // domínio ainda, é `journalctl -u whatsapp-adapter -f` e pronto.
+      const ascii = await QRCode.toString(qr, { type: 'terminal', small: true })
+      logger.info('novo QR gerado — escaneie com o WhatsApp (Aparelhos conectados)')
+      // eslint-disable-next-line no-console
+      console.log(ascii)
     }
 
     if (connection === 'open') {

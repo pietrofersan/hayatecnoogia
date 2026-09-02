@@ -43,10 +43,12 @@ Abra `http://localhost:3000/qr`, escaneie com **Aparelhos conectados** no WhatsA
 | `CANAL_EXTERNAL_ID` | não | default `principal` — precisa existir uma linha em `channel_accounts` com esse id antes de subir |
 | `PORT` | não | default `3000` |
 
-## Deploy (Render)
+## Deploy
 
-Build: `cd services/whatsapp-adapter && npm install && npm run build`
-Start: `cd services/whatsapp-adapter && npm start`
+**VPS (Hostinger ou qualquer Ubuntu)** — passo a passo completo em [DEPLOY_HOSTINGER.md](DEPLOY_HOSTINGER.md).
+O QR aparece direto no log (`journalctl`), sem precisar expor porta nenhuma pra internet.
 
-O serviço é um **web service** (precisa da porta pública pro `/qr`), não um background worker —
-mas o que importa de verdade é o processo ficar vivo; o HTTP é só a tela de pareamento.
+**Render** também funciona (build `cd services/whatsapp-adapter && npm install && npm run build`,
+start `cd services/whatsapp-adapter && npm start`) — mas o plano Free dorme depois de 15 min sem
+requisição HTTP, e a conexão do WhatsApp cai junto. Só serve pra validar o deploy, não pra uso real
+sem o plano pago.
