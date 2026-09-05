@@ -1176,3 +1176,52 @@ export async function ativarCliente(
   revalidatePath('/dashboard')
   return { ok: true, id: cliente.id }
 }
+
+// Conteúdo — aprovação humana (Intelligence §5 e §7) ------------------
+
+/**
+ * "Nenhum post sai sem aprovação humana": só esta ação leva uma peça a
+ * `aprovado`, e ela sempre carimba quem aprovou. O efeito é único em toda
+ * a aplicação — KPI "Aguardando você", contagem dos chips e fila do
+ * calendário leem o mesmo status.
+ */
+export async function aprovarConteudo(id: string): Promise<Resultado> {
+  const supabase = await supabaseServidor()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return { ok: false, erro: 'Sessão expirada.' }
+
+  const { error } = await supabase
+    .from('conteudos')
+    .update({
+      status: 'aprovado',
+      aprovado_em: new Date().toISOString(),
+      aprovado_por: user.id,
+    })
+    .eq('id', id)
+
+  if (error) return { ok: false, erro: error.message }
+
+  revalidatePath('/conteudo')
+  revalidatePath('/conteudo/calendario')
+  revalidatePath('/dashboard')
+  return { ok: true }
+}
+
+/** Devolver volta para rascunho e limpa o carimbo de aprovação anterior. */
+export async function devolverConteudo(id: string): Promise<Resultado> {
+  const supabase = await supabaseServidor()
+  const { error } = await supabase
+    .from('conteudos')
+    .update({ status: 'rascunho', aprovado_em: null, aprovado_por: null })
+    .eq('id', id)
+
+  if (error) return { ok: false, erro: error.message }
+
+  revalidatePath('/conteudo')
+  revalidatePath('/conteudo/calendario')
+  revalidatePath('/dashboard')
+  return { ok: true }
+}

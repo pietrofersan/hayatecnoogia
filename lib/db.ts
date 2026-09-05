@@ -321,3 +321,90 @@ export const ROTULO_ESTADO_DOMINIO: Record<EstadoDominio, string> = {
   registrado: '● Registrado',
   indeterminado: '? Sem resposta',
 }
+
+// Conteúdo gerado e calendário de publicação (Intelligence §5 e §7) -----
+
+export type CanalConteudo = 'instagram' | 'facebook' | 'tiktok' | 'blog' | 'youtube'
+export type StatusConteudo = 'rascunho' | 'aguardando' | 'aprovado' | 'publicado'
+
+export type Conteudo = {
+  id: string
+  cliente_id: string | null
+  canal: CanalConteudo
+  titulo: string
+  trecho: string | null
+  corpo: string | null
+  status: StatusConteudo
+  publicar_em: string | null
+  publicado_em: string | null
+  modelo: string | null
+  custo_centesimos_usd: number
+  criado_em: string
+  aprovado_em: string | null
+  aprovado_por: string | null
+}
+
+export const CANAIS_CONTEUDO: CanalConteudo[] = [
+  'instagram',
+  'facebook',
+  'tiktok',
+  'blog',
+  'youtube',
+]
+
+export const ROTULO_CANAL_CONTEUDO: Record<CanalConteudo, string> = {
+  instagram: 'Instagram',
+  facebook: 'Facebook',
+  tiktok: 'TikTok',
+  blog: 'Blog',
+  youtube: 'YouTube',
+}
+
+export const ROTULO_STATUS_CONTEUDO: Record<StatusConteudo, string> = {
+  rascunho: 'rascunho',
+  aguardando: 'aguardando',
+  aprovado: 'aprovado',
+  publicado: 'publicado',
+}
+
+// Mapa de posicionamento (Intelligence §4) ------------------------------
+
+export type TipoNoMapa =
+  | 'hub'
+  | 'subdominio'
+  | 'landing'
+  | 'satelite'
+  | 'canibalizacao'
+  | 'buraco'
+
+export type NoMapa = {
+  id: string
+  cliente_id: string
+  tipo: TipoNoMapa
+  rotulo: string
+  palavra_alvo: string | null
+  escopo: string | null
+  url: string | null
+  telefone: string | null
+  trafego_mes: number | null
+  leads_30d: number | null
+  x: number
+  y: number
+  criado_em: string
+}
+
+export type ArestaMapa = {
+  id: number
+  de: string
+  para: string
+  canibalizacao: boolean
+}
+
+export const ROTULO_TIPO_NO: Record<TipoNoMapa, string> = {
+  hub: 'Hub da marca',
+  subdominio: 'Subdomínio',
+  landing: 'Landing',
+  satelite: 'Marca satélite',
+  canibalizacao: 'Canibalização',
+  buraco: 'Buraco de cobertura',
+}

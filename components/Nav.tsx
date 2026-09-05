@@ -13,10 +13,18 @@ const GRUPOS: { grupo: string; itens: Item[] }[] = [
       { href: '/dashboard', rotulo: 'Dashboard', icone: '◈' },
       { href: '/alertas', rotulo: 'Alertas', icone: '✦' },
       { href: '/segmentos', rotulo: 'Segmentos', icone: '⌗' },
+      { href: '/mapa', rotulo: 'Mapa', icone: '⬡' },
       { href: '/clientes', rotulo: 'Clientes', icone: '◍' },
       { href: '/dominios', rotulo: 'Domínios', icone: '◎' },
       { href: '/leads', rotulo: 'Leads', icone: '◆' },
       { href: '/crm', rotulo: 'CRM', icone: '✉' },
+    ],
+  },
+  {
+    grupo: 'Conteúdo',
+    itens: [
+      { href: '/conteudo', rotulo: 'Peças', icone: '✎' },
+      { href: '/conteudo/calendario', rotulo: 'Agenda', icone: '▥' },
     ],
   },
   {
@@ -81,12 +89,15 @@ export function Nav() {
   )
 }
 
+// Ordem do handoff (§"Interações"): Hoje, Segmentos, Mapa em destaque,
+// Agenda, Clientes. Domínios/Conteúdo/Contratos entram pelos atalhos do
+// Dashboard mobile.
 const BARRA: Item[] = [
   { href: '/dashboard', rotulo: 'Hoje', icone: '◈' },
   { href: '/segmentos', rotulo: 'Segmentos', icone: '⌗' },
+  { href: '/mapa', rotulo: 'Mapa', icone: '⬡' },
+  { href: '/conteudo/calendario', rotulo: 'Agenda', icone: '▥' },
   { href: '/clientes', rotulo: 'Clientes', icone: '◍' },
-  { href: '/crm', rotulo: 'CRM', icone: '✉' },
-  { href: '/alertas', rotulo: 'Alertas', icone: '✦' },
 ]
 
 const DESTAQUE = 2

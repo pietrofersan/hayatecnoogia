@@ -28,8 +28,7 @@ npm run dev
 
 Organização **HAYA TECNOLOGIA**, projeto **HAYA APP** (`ghkckfamnpivlwlcjoez`,
 região `sa-east-1`). As migrações de `supabase/migrations/` são aplicadas em
-ordem; a `0008_alertas_resolvidos.sql` é a única pendente — sem ela a Central
-de alertas lista tudo, mas o botão "Resolver" falha.
+ordem, e todas estão aplicadas.
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://ghkckfamnpivlwlcjoez.supabase.co
@@ -76,6 +75,8 @@ app/
 ├─ (dash)/dashboard · clientes · clientes/[id] · clientes/onboarding
 ├─ (dash)/contratos · cobrancas · relatorio · leads · config
 ├─ (dash)/alertas                        # central de alertas derivados
+├─ (dash)/mapa                           # mapa de posicionamento da marca
+├─ (dash)/conteudo · conteudo/calendario # peças geradas e agenda semanal
 ├─ (dash)/integracoes · usuarios         # pipeline dos crons · equipe e 2FA
 ├─ (dash)/crm/inbox · inbox/[id] · contatos · funil  # WhatsApp/IG/FB/ML
 ├─ (dash)/segmentos · segmentos/[id]     # Módulo 1 — inteligência de mercado
@@ -91,9 +92,10 @@ components/  Painel · KpiTile+Sparkline · StatusBadge · Chip · Tabela · Ane
 supabase/migrations/0001_init · 0002_crm_modulo · 0003_segmentos
                     0004_fecha_auto_ingresso_crm · 0005_radar_dominios
                     0006_whatsapp_sessoes · 0007_tags_externas
-                    0008_alertas_resolvidos
+                    0008_alertas_resolvidos · 0009_conteudos
+                    0010_mapa_posicionamento
 scripts/import.ts + planilha-modelo.csv
-services/whatsapp-adapter/   # processo à parte — Baileys, deploy na Render
+services/whatsapp-adapter/   # processo à parte — Baileys, deploy em VPS
 docs/design/  handoff · convenções · mapa de módulos · tokens de referência
 docs/crm/     arquitetura · canais · ui · roadmap   # do app CRM separado
 ```
@@ -103,9 +105,20 @@ halos, painéis de vidro, acentos neon com significado fixo (verde funcionando,
 âmbar aguardando, magenta falhou, ciano ação/IA, azul navegação, roxo
 contrato), Space Grotesk na interface e JetBrains Mono em todo número. Tokens
 em `app/globals.css`; a referência e as regras estão em
-[`docs/design/`](docs/design/README.md). Três telas do handoff ficaram de fora
-por falta de schema — mapa de posicionamento, calendário de publicação e
-conteúdo gerado.
+[`docs/design/`](docs/design/README.md). As 19 telas do handoff estão no ar.
+
+**Conteúdo e agenda.** Uma tabela (`conteudos`) serve as duas telas: "Peças" é
+a lista por status, "Agenda" é a mesma coisa fatiada por semana de
+`publicar_em`. **Nenhum post sai sem aprovação humana** — a IA só chega em
+`aguardando`, e `aprovado` exige um usuário, carimbado em `aprovado_por`.
+Aprovar/devolver muda o status em toda a aplicação: KPI "Aguardando você",
+contagem dos chips e fila do calendário leem a mesma linha.
+
+**Mapa de posicionamento.** Grafo por cliente: o hub é o domínio da marca, e em
+volta ficam subdomínios, landings, satélites, canibalizações (duas páginas
+brigando pela mesma palavra) e buracos (palavra que ninguém cobre). A posição
+de cada nó é guardada porque o desenho é curado à mão — não é layout
+automático.
 
 **Central de alertas.** Nada é gravado quando o problema aparece: a lista é
 derivada a cada carga de domínios vencendo, cobranças em atraso, contratos
