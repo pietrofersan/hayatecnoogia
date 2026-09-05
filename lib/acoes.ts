@@ -1312,3 +1312,97 @@ export async function programarConteudo(
   revalidatePath('/conteudo/calendario')
   return { ok: true }
 }
+
+// Mapa de posicionamento (Intelligence §4) ----------------------------
+
+const esquemaNo = z.object({
+  cliente_id: z.string().uuid('Escolha o cliente.'),
+  tipo: z.enum(['hub', 'subdominio', 'landing', 'satelite', 'canibalizacao', 'buraco']),
+  rotulo: z.string().min(2, 'Dê um rótulo ao nó.'),
+  palavra_alvo: z.string().optional(),
+  url: z.string().optional(),
+})
+
+/**
+ * Acrescenta um nó ao mapa. A posição não é pedida no formulário: o nó
+ * nasce num anel em volta do hub e é arrastado depois — pedir x/y a quem
+ * está cadastrando seria burocracia sem ganho.
+ */
+export async function criarNoMapa(
+  _estado: unknown,
+  formData: FormData,
+): Promise<Resultado> {
+  const analise = esquemaNo.safeParse({
+    cliente_id: texto(formData, 'cliente_id'),
+    tipo: texto(formData, 'tipo'),
+    rotulo: texto(formData, 'rotulo'),
+    palavra_alvo: texto(formData, 'palavra_alvo'),
+    url: texto(formData, 'url'),
+  })
+
+  if (!analise.success) return { ok: false, erro: analise.error.issues[0].message }
+
+  const { cliente_id, tipo, rotulo, palavra_alvo, url } = analise.data
+  const supabase = await supabaseServidor()
+
+  const { data: existentes } = await supabase
+    .from('mapa_nos')
+    .select('id, tipo')
+    .eq('cliente_id', cliente_id)
+
+  const nos = (existentes ?? []) as { id: string; tipo: string }[]
+
+  if (tipo === 'hub' && nos.some((n) => n.tipo === 'hub')) {
+    return { ok: false, erro: 'Este cliente já tem um hub — só pode haver um.' }
+  }
+
+  // Hub no centro do canvas 900×560; os demais num anel, distribuídos pelo
+  // número de satélites que já existem.
+  const satelites = nos.filter((n) => n.tipo !== 'hub').length
+  const angulo = (satelites * 2 * Math.PI) / 8
+  const posicao =
+    tipo === 'hub'
+      ? { x: 450, y: 280 }
+      : {
+          x: 450 + Math.cos(angulo) * 190,
+          y: 280 + Math.sin(angulo) * 150,
+        }
+
+  const { data: criado, error } = await supabase
+    .from('mapa_nos')
+    .insert({
+      cliente_id,
+      tipo,
+      rotulo,
+      palavra_alvo: palavra_alvo || null,
+      url: url || null,
+      x: Math.round(posicao.x),
+      y: Math.round(posicao.y),
+    })
+    .select('id')
+    .single()
+
+  if (error) return { ok: false, erro: error.message }
+
+  // Todo nó nasce ligado ao hub — é o que o mapa quer dizer: tudo orbita a
+  // marca. Canibalização entra como aresta magenta.
+  const hub = nos.find((n) => n.tipo === 'hub')
+  if (hub && tipo !== 'hub') {
+    await supabase.from('mapa_arestas').insert({
+      de: hub.id,
+      para: criado.id,
+      canibalizacao: tipo === 'canibalizacao',
+    })
+  }
+
+  revalidatePath('/mapa')
+  return { ok: true, id: criado.id }
+}
+
+export async function removerNoMapa(id: string): Promise<Resultado> {
+  const supabase = await supabaseServidor()
+  const { error } = await supabase.from('mapa_nos').delete().eq('id', id)
+  if (error) return { ok: false, erro: error.message }
+  revalidatePath('/mapa')
+  return { ok: true }
+}

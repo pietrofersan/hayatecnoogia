@@ -1,6 +1,7 @@
 import { BotaoLink } from '@/components/Campo'
 import { CabecalhoTela } from '@/components/CabecalhoTela'
 import { ChipLink } from '@/components/Chip'
+import { FormNoMapa } from '@/components/FormNoMapa'
 import { MapaPosicionamento } from '@/components/MapaPosicionamento'
 import { Painel, Vazio } from '@/components/Painel'
 import type { ArestaMapa, Cliente, NoMapa } from '@/lib/db'
@@ -63,7 +64,12 @@ export default async function Mapa({
             ? `${nomeCliente} · ${nos.length} nó(s) · hub, satélites, canibalizações e buracos de cobertura`
             : 'Cadastre um cliente para desenhar o mapa da marca'
         }
-        acoes={<BotaoLink href="/segmentos">Ver segmentos</BotaoLink>}
+        acoes={
+          <>
+            <BotaoLink href="/segmentos">Ver segmentos</BotaoLink>
+            {clienteId && <FormNoMapa clienteId={clienteId} />}
+          </>
+        }
       />
 
       {clientes.length > 1 && (
@@ -88,7 +94,7 @@ export default async function Mapa({
             descricao={
               clientes.length === 0
                 ? 'O mapa é desenhado por cliente — cadastre o primeiro para começar.'
-                : 'Este cliente ainda não tem mapa. Os nós vêm da pesquisa de segmento: hub da marca, subdomínios, landings, satélites, e as palavras que ninguém cobre.'
+                : 'Comece pelo hub (o domínio principal da marca) — os outros nós nascem ligados a ele.'
             }
             acao={
               clientes.length === 0 ? (
