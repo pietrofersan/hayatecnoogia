@@ -1,0 +1,47 @@
+/* tokens.css — alternativa sem Tailwind (CSS custom properties) */
+:root {
+  /* superfícies */
+  --haya-abismo: #04060D;
+  --haya-breu: #070B16;
+  --haya-vidro: rgba(10, 15, 30, .55);
+  --haya-vidro-chrome: rgba(8, 12, 24, .85);
+  --haya-borda: rgba(120, 150, 255, .14);
+  --haya-borda-forte: rgba(120, 150, 255, .30);
+
+  /* texto */
+  --haya-texto-pleno: #F2F7FF;
+  --haya-texto-base: #EAF2FF;
+  --haya-texto-mono: #C7D3F0;
+  --haya-texto-suave: #9AA7CC;
+  --haya-texto-fraco: #8593B9;
+  --haya-texto-tenue: #6E7CA6;
+  --haya-texto-fantasma: #4F5D85;
+  --haya-texto-abissal: #3E4A6B;
+
+  /* acentos */
+  --haya-ciano: #22D3EE;   --haya-ciano-claro: #67E8F9;
+  --haya-azul: #4C6FFF;    --haya-azul-claro: #8FA6FF;
+  --haya-roxo: #A855F7;    --haya-roxo-claro: #C084FC;
+  --haya-verde: #34E5B0;
+  --haya-ambar: #F5A524;
+  --haya-magenta: #F0338F; --haya-magenta-claro: #FF6FB1; --haya-magenta-palido: #FF8AC0;
+
+  /* espaço · base 4 */
+  --haya-2: 8px; --haya-3: 12px; --haya-4: 16px; --haya-5: 20px; --haya-6: 24px; --haya-8: 32px;
+
+  /* vidro */
+  --haya-blur: 18px;
+  --haya-blur-chrome: 22px;
+  --haya-sombra-vidro: inset 0 1px 0 rgba(255, 255, 255, .05);
+  --haya-sombra-kpi: 0 18px 44px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .07);
+  --haya-sombra-painel: 0 40px 120px rgba(0, 0, 0, .60), inset 0 1px 0 rgba(255, 255, 255, .06);
+}
+
+/* fundo da aplicação — três halos, nunca gradiente linear cheio */
+.haya-fundo {
+  background-color: var(--haya-abismo);
+  background-image:
+    radial-gradient(1100px 620px at 8% -8%, rgba(76, 111, 255, .20), transparent 62%),
+    radial-gradient(900px 520px at 96% 4%, rgba(168, 85, 247, .16), transparent 60%),
+    radial-gradient(760px 520px at 50% 108%, rgba(34, 211, 238, .12), transparent 62%);
+}
