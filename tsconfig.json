@@ -17,5 +17,9 @@
     "paths": { "@/*": ["./*"] }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  // `services/` é outro pacote: tem package.json, dependências e tsconfig
+  // próprios, e é compilado no servidor onde roda (não na Vercel). Sem esta
+  // exclusão o build do Next tenta typechecar o adaptador de WhatsApp e
+  // falha em 'baileys', que só existe dentro de services/whatsapp-adapter.
+  "exclude": ["node_modules", "services"]
 }
