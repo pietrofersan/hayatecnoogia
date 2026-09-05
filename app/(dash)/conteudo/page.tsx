@@ -1,5 +1,7 @@
 import { AcoesConteudo } from '@/components/AcoesConteudo'
 import { BotaoLink } from '@/components/Campo'
+import { FormGerarConteudo } from '@/components/FormGerarConteudo'
+import { FormProgramar } from '@/components/FormProgramar'
 import { BarraFiltros, CabecalhoTela } from '@/components/CabecalhoTela'
 import { ChipLink } from '@/components/Chip'
 import { KpiTile } from '@/components/KpiTile'
@@ -11,7 +13,7 @@ import {
   TOM_CANAL,
   TOM_STATUS_CONTEUDO,
 } from '@/lib/conteudo'
-import type { Conteudo, StatusConteudo } from '@/lib/db'
+import type { Cliente, Conteudo, StatusConteudo } from '@/lib/db'
 import { ROTULO_CANAL_CONTEUDO } from '@/lib/db'
 import { supabaseServidor } from '@/lib/supabase'
 
@@ -48,12 +50,16 @@ export default async function ConteudoGerado({
   const filtro: Filtro = ehFiltro(status) ? status : 'todos'
 
   const supabase = await supabaseServidor()
-  const { data } = await supabase
-    .from('conteudos')
-    .select('*, clientes(nome)')
-    .order('criado_em', { ascending: false })
+  const [{ data }, { data: clientesBrutos }] = await Promise.all([
+    supabase
+      .from('conteudos')
+      .select('*, clientes(nome)')
+      .order('criado_em', { ascending: false }),
+    supabase.from('clientes').select('id, nome').order('nome'),
+  ])
 
   const todas = (data ?? []) as unknown as Peca[]
+  const clientes = (clientesBrutos ?? []) as Pick<Cliente, 'id' | 'nome'>[]
 
   const inicioMes = new Date()
   inicioMes.setDate(1)
@@ -86,7 +92,12 @@ export default async function ConteudoGerado({
       <CabecalhoTela
         titulo="Conteúdo gerado"
         meta="Nenhuma peça vai ao ar sem aprovação humana — aprovar aqui libera para o calendário"
-        acoes={<BotaoLink href="/conteudo/calendario">Ver calendário</BotaoLink>}
+        acoes={
+          <>
+            <BotaoLink href="/conteudo/calendario">Ver calendário</BotaoLink>
+            <FormGerarConteudo clientes={clientes} />
+          </>
+        }
       />
 
       <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
@@ -135,7 +146,7 @@ export default async function ConteudoGerado({
           <Vazio
             descricao={
               todas.length === 0
-                ? 'A geração de conteúdo ainda não escreveu nada — as peças aparecem aqui assim que o primeiro lote rodar.'
+                ? 'Use "Gerar com IA" para escrever o primeiro lote — as peças entram aguardando sua aprovação.'
                 : undefined
             }
             acao={
@@ -191,6 +202,12 @@ export default async function ConteudoGerado({
                   {c.status === 'aguardando' && (
                     <div className="mt-3">
                       <AcoesConteudo id={c.id} />
+                    </div>
+                  )}
+
+                  {(c.status === 'aprovado' || c.status === 'publicado') && (
+                    <div className="mt-3">
+                      <FormProgramar id={c.id} publicarEm={c.publicar_em} />
                     </div>
                   )}
                 </article>

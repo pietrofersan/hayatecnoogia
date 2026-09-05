@@ -10,7 +10,7 @@ import { formatBRL, parseParaCentavos, proximoVencimento } from './money'
 import { somenteDigitos, validaDocumento } from './validacao'
 import { aplicarMergeTags, criarDocumento } from './zapsign'
 import { env } from './env'
-import { ErroIA, expandirSegmento } from './ia'
+import { ErroIA, expandirSegmento, gerarPecas, MODELO_IA } from './ia'
 import { EXTENSOES_PADRAO, checarDominio } from './rdap'
 import { reconsultarRadar } from './radar'
 
@@ -1223,5 +1223,92 @@ export async function devolverConteudo(id: string): Promise<Resultado> {
   revalidatePath('/conteudo')
   revalidatePath('/conteudo/calendario')
   revalidatePath('/dashboard')
+  return { ok: true }
+}
+
+const esquemaGeracao = z.object({
+  cliente_id: z.string().uuid('Escolha o cliente.'),
+  canal: z.enum(['instagram', 'facebook', 'tiktok', 'blog', 'youtube']),
+  tema: z.string().min(4, 'Descreva o tema em pelo menos uma frase.'),
+  quantidade: z.number().int().min(1).max(5),
+})
+
+/**
+ * Gera peças com IA e grava todas como `aguardando`. Nunca como aprovado:
+ * o caminho para `aprovado` é só a mão de alguém, em aprovarConteudo.
+ *
+ * A camada gratuita do Gemini não cobra, então o custo gravado é 0 — o
+ * campo existe para o dia em que virar plano pago. Não inventamos um
+ * custo estimado só para o KPI ter número bonito.
+ */
+export async function gerarConteudo(
+  _estado: unknown,
+  formData: FormData,
+): Promise<Resultado> {
+  const analise = esquemaGeracao.safeParse({
+    cliente_id: texto(formData, 'cliente_id'),
+    canal: texto(formData, 'canal'),
+    tema: texto(formData, 'tema'),
+    quantidade: Number(texto(formData, 'quantidade') || '3'),
+  })
+
+  if (!analise.success) {
+    return { ok: false, erro: analise.error.issues[0].message }
+  }
+
+  const { cliente_id, canal, tema, quantidade } = analise.data
+  const supabase = await supabaseServidor()
+
+  const { data: cliente } = await supabase
+    .from('clientes')
+    .select('nome')
+    .eq('id', cliente_id)
+    .single()
+
+  if (!cliente) return { ok: false, erro: 'Cliente não encontrado.' }
+
+  let pecas
+  try {
+    pecas = await gerarPecas(cliente.nome, canal, tema, quantidade)
+  } catch (erro) {
+    if (erro instanceof ErroIA) return { ok: false, erro: erro.message }
+    throw erro
+  }
+
+  const { error } = await supabase.from('conteudos').insert(
+    pecas.map((p) => ({
+      cliente_id,
+      canal,
+      titulo: p.titulo,
+      trecho: p.trecho,
+      corpo: p.corpo,
+      status: 'aguardando' as const,
+      modelo: MODELO_IA,
+      custo_centesimos_usd: 0,
+    })),
+  )
+
+  if (error) return { ok: false, erro: error.message }
+
+  revalidatePath('/conteudo')
+  revalidatePath('/conteudo/calendario')
+  return { ok: true }
+}
+
+/** Marca a data/hora de publicação — é o que faz a peça aparecer na agenda. */
+export async function programarConteudo(
+  id: string,
+  quando: string | null,
+): Promise<Resultado> {
+  const supabase = await supabaseServidor()
+  const { error } = await supabase
+    .from('conteudos')
+    .update({ publicar_em: quando ? new Date(quando).toISOString() : null })
+    .eq('id', id)
+
+  if (error) return { ok: false, erro: error.message }
+
+  revalidatePath('/conteudo')
+  revalidatePath('/conteudo/calendario')
   return { ok: true }
 }
