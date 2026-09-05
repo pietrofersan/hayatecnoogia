@@ -10,7 +10,7 @@ Implementa o [Blueprint Técnico F1 (v1)](docs/blueprint-f1.md).
 | Camada | Escolha |
 | --- | --- |
 | App | Next.js 15 (App Router) + TypeScript |
-| Estilo | Tailwind v4 com os tokens Haya v1.1 (`app/globals.css`) |
+| Estilo | Tailwind v4 com os tokens HAYA Intelligence (`app/globals.css`, ver [`docs/design/`](docs/design/README.md)) |
 | Banco / Auth / Storage | Supabase (Postgres + RLS, e-mail/senha, bucket `contratos`) |
 | Cobranças | Asaas API v3 (sandbox) |
 | Assinatura | ZapSign (sandbox) |
@@ -27,8 +27,9 @@ npm run dev
 ### Projeto Supabase
 
 Organização **HAYA TECNOLOGIA**, projeto **HAYA APP** (`ghkckfamnpivlwlcjoez`,
-região `sa-east-1`). A migração `supabase/migrations/0001_init.sql` já está
-aplicada lá.
+região `sa-east-1`). As migrações de `supabase/migrations/` são aplicadas em
+ordem; a `0008_alertas_resolvidos.sql` é a única pendente — sem ela a Central
+de alertas lista tudo, mas o botão "Resolver" falha.
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://ghkckfamnpivlwlcjoez.supabase.co
@@ -72,22 +73,52 @@ e `/api/cron` passam pelo middleware de sessão.
 
 ```
 app/
-├─ (dash)/dashboard · clientes · contratos · cobrancas · leads · config
+├─ (dash)/dashboard · clientes · clientes/[id] · clientes/onboarding
+├─ (dash)/contratos · cobrancas · relatorio · leads · config
+├─ (dash)/alertas                        # central de alertas derivados
+├─ (dash)/integracoes · usuarios         # pipeline dos crons · equipe e 2FA
 ├─ (dash)/crm/inbox · inbox/[id] · contatos · funil  # WhatsApp/IG/FB/ML
 ├─ (dash)/segmentos · segmentos/[id]     # Módulo 1 — inteligência de mercado
 ├─ (dash)/dominios                       # Módulo 2 — radar de domínios
 ├─ api/webhooks/asaas · zapsign
 ├─ api/leads/[siteKey]            # ingresso público dos formulários
+├─ api/relatorio/[clienteId]      # PDF do relatório mensal (Gotenberg)
 └─ api/cron/vencimentos · resumo-semanal · radar-dominios
-lib/     asaas · zapsign · supabase · crm · ia · rdap · radar · money · pdf · acoes · consultas · notificacoes
-components/  KpiTile · BarRow · StatusChip · FrenteTag · Tabela · WizardContrato · CrmSubNavLink…
+lib/     asaas · zapsign · supabase · crm · ia · rdap · radar · money · pdf
+         alertas · relatorio · acoes · consultas · notificacoes
+components/  Painel · KpiTile+Sparkline · StatusBadge · Chip · Tabela · Anel
+             Abas · Avatar · FrenteTag · WizardOnboarding · WizardContrato…
 supabase/migrations/0001_init · 0002_crm_modulo · 0003_segmentos
                     0004_fecha_auto_ingresso_crm · 0005_radar_dominios
                     0006_whatsapp_sessoes · 0007_tags_externas
+                    0008_alertas_resolvidos
 scripts/import.ts + planilha-modelo.csv
 services/whatsapp-adapter/   # processo à parte — Baileys, deploy na Render
-docs/crm/  arquitetura · canais · ui · roadmap   # trazido do app CRM separado
+docs/design/  handoff · convenções · mapa de módulos · tokens de referência
+docs/crm/     arquitetura · canais · ui · roadmap   # do app CRM separado
 ```
+
+**Design.** O painel segue o handoff HAYA Intelligence: fundo abismo com três
+halos, painéis de vidro, acentos neon com significado fixo (verde funcionando,
+âmbar aguardando, magenta falhou, ciano ação/IA, azul navegação, roxo
+contrato), Space Grotesk na interface e JetBrains Mono em todo número. Tokens
+em `app/globals.css`; a referência e as regras estão em
+[`docs/design/`](docs/design/README.md). Três telas do handoff ficaram de fora
+por falta de schema — mapa de posicionamento, calendário de publicação e
+conteúdo gerado.
+
+**Central de alertas.** Nada é gravado quando o problema aparece: a lista é
+derivada a cada carga de domínios vencendo, cobranças em atraso, contratos
+parados na assinatura, leads fora do SLA de 1 h e webhooks com erro nas
+últimas 24 h. O que persiste é só a baixa, em `alertas_resolvidos`, com chave
+determinística — resolver tira o item da central e do dashboard sem apagar o
+dado de origem.
+
+**Relatório mensal.** Um cliente por vez, seções que se desligam antes de
+exportar, PDF pelo mesmo Gotenberg dos contratos e envio do resumo pela fila
+de saída do WhatsApp (`messages` com status `pending`, o mesmo caminho da
+resposta manual no inbox). A "saúde da conta" não é índice fechado: é a
+contagem de cinco sinais que a tela lista um a um.
 
 **CRM.** Inbox unificado de conversas de WhatsApp/Instagram/Facebook/Mercado
 Livre — lista, thread da conversa (bolhas, divisor de data, status de
