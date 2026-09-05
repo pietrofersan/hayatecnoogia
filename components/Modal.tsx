@@ -38,14 +38,14 @@ export function Modal({
       aria-modal
       aria-label={titulo}
     >
-      <div className="my-auto w-full max-w-3xl rounded-xl border border-borda bg-vidro">
+      <div className="my-auto w-full max-w-3xl rounded-painel border border-borda bg-vidro shadow-painel backdrop-blur-[18px]">
         <header className="flex items-center justify-between border-b border-borda px-5 py-4">
           <h2 className="text-[13px] font-medium tracking-wide text-corpo uppercase">
             {titulo}
           </h2>
           <button
             onClick={aoFechar}
-            className="text-sm text-tenue hover:text-pleno"
+            className="text-[12.5px] text-tenue hover:text-pleno"
             aria-label="Fechar"
           >
             ×

@@ -13,6 +13,13 @@ import { Celula, Linha } from './Tabela'
 
 const EXTENSOES = ['com', 'com.br', 'net'] as const
 
+/** A tendência carrega a cor semântica: alta verde, queda magenta, estável azul. */
+const COR_TENDENCIA = {
+  subindo: 'text-verde [text-shadow:0_0_12px_rgba(52,229,176,.55)]',
+  caindo: 'text-magenta-claro [text-shadow:0_0_12px_rgba(240,51,143,.55)]',
+  estavel: 'text-azul-claro',
+} as const
+
 /**
  * Chip de extensão. Depois de checado vira botão: clicar põe o domínio no
  * radar (Módulo 2), que reconsulta todo dia — inclusive o que está
@@ -31,7 +38,7 @@ function ChipDominio({
 }) {
   if (!checagem || checagem.disponivel === null) {
     return (
-      <span className="rounded border border-borda px-1.5 py-0.5 text-[10px] text-tenue">
+      <span className="rounded-chip border border-borda px-2.5 py-1 font-mono text-[10px] text-fantasma">
         .{extensao}
       </span>
     )
@@ -41,10 +48,10 @@ function ChipDominio({
       type="button"
       onClick={onVigiar}
       disabled={vigiando}
-      className={`rounded border px-1.5 py-0.5 text-[10px] disabled:opacity-50 ${
+      className={`cursor-pointer rounded-chip border px-2.5 py-1 font-mono text-[10px] transition-colors disabled:opacity-50 ${
         checagem.disponivel
-          ? 'border-verde/40 text-verde hover:bg-verde/10'
-          : 'border-magenta/40 text-magenta hover:bg-magenta/10'
+          ? 'border-verde/40 bg-verde/10 text-verde shadow-glow-verde hover:bg-verde/20'
+          : 'border-magenta/30 bg-magenta/[0.08] text-magenta-claro hover:bg-magenta/15'
       }`}
       title={`${checagem.disponivel ? 'Domínio livre' : 'Domínio registrado'} — clique para vigiar no radar`}
     >
@@ -83,21 +90,28 @@ export function LinhaPalavra({
           }
           disabled={marcando}
           title={interessante ? 'Desmarcar interessante' : 'Marcar como interessante'}
-          className={interessante ? 'text-ambar' : 'text-tenue hover:text-suave'}
+          className={`cursor-pointer text-[15px] transition-colors ${
+            interessante ? 'text-ambar' : 'text-fantasma hover:text-suave'
+          }`}
+          style={interessante ? { textShadow: '0 0 12px currentColor' } : undefined}
         >
           {interessante ? '★' : '☆'}
         </button>
       </Celula>
-      <Celula>{palavra.termo}</Celula>
+      <Celula>
+        <span className="text-pleno">{palavra.termo}</span>
+      </Celula>
       <Celula>
         {palavra.tendencia ? (
-          ROTULO_TENDENCIA[palavra.tendencia]
+          <span className={COR_TENDENCIA[palavra.tendencia]}>
+            {ROTULO_TENDENCIA[palavra.tendencia]}
+          </span>
         ) : (
-          <span className="text-tenue">aguardando</span>
+          <span className="font-mono text-[11px] text-fantasma">aguardando</span>
         )}
       </Celula>
-      <Celula numerica>
-        {palavra.volume ?? <span className="text-tenue">aguardando</span>}
+      <Celula numerica mono>
+        {palavra.volume ?? <span className="text-fantasma">aguardando</span>}
       </Celula>
       <Celula>
         <div className="flex flex-wrap items-center gap-1.5">
@@ -127,11 +141,11 @@ export function LinhaPalavra({
               })
             }
             disabled={checando}
-            className="ml-1 text-[10px] text-azul hover:underline disabled:opacity-50"
+            className="ml-1 cursor-pointer font-mono text-[10px] text-ciano hover:underline disabled:opacity-50"
           >
             {checando ? 'checando…' : 'checar'}
           </button>
-          {aviso && <span className="text-[10px] text-tenue">{aviso}</span>}
+          {aviso && <span className="font-mono text-[10px] text-tenue">{aviso}</span>}
         </div>
       </Celula>
     </Linha>

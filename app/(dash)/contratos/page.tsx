@@ -1,5 +1,10 @@
 import Link from 'next/link'
 import { AcoesContrato } from '@/components/AcoesContrato'
+import { BotaoLink } from '@/components/Campo'
+import { BarraFiltros, CabecalhoTela } from '@/components/CabecalhoTela'
+import { ChipLink } from '@/components/Chip'
+import { KpiTile } from '@/components/KpiTile'
+import { Ponto, StatusBadge } from '@/components/StatusBadge'
 import type { ClienteResumo, TemplateResumo } from '@/components/CamposContrato'
 import { FormContratoRascunho } from '@/components/FormContratoRascunho'
 import { FrenteTag } from '@/components/FrenteTag'
@@ -20,8 +25,20 @@ type Filtros = {
   tipo?: string
   modo?: string
   assinatura?: string
+  situacao?: string
   c?: string
 }
+
+const CONTROLE =
+  'rounded-ctrl border border-borda-forte bg-[rgba(10,15,30,.72)] px-3 py-2 text-[12px] text-corpo outline-none focus:border-ciano'
+
+/** Régua de cobrança do Asaas — o que o cron de vencimentos dispara. */
+const REGUA = [
+  { quando: 'D+1', passo: 'Lembrete no WhatsApp', tom: 'azul' as const },
+  { quando: 'D+3', passo: 'Segunda via da fatura', tom: 'ciano' as const },
+  { quando: 'D+7', passo: 'Alerta ao gestor da conta', tom: 'ambar' as const },
+  { quando: 'D+15', passo: 'Suspensão do serviço', tom: 'magenta' as const },
+]
 
 export default async function Contratos({
   searchParams,
@@ -42,7 +59,17 @@ export default async function Contratos({
   if (f.assinatura === 'pendente') consulta = consulta.in('status', ['rascunho', 'enviado'])
   if (f.assinatura === 'assinado') consulta = consulta.in('status', ['assinado', 'ativo'])
 
-  const [{ data }, { data: clientes }, { data: templates }] = await Promise.all([
+  const em30 = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10)
+  const hoje = new Date().toISOString().slice(0, 10)
+  const ha24h = new Date(Date.now() - 864e5).toISOString()
+
+  const [
+    { data },
+    { data: clientes },
+    { data: templates },
+    { data: cobrancas },
+    { data: hooks },
+  ] = await Promise.all([
     consulta,
     supabase.from('clientes').select('id, nome, email, whatsapp').order('nome'),
     supabase
@@ -50,6 +77,15 @@ export default async function Contratos({
       .select('id, nome, frente, tipo')
       .eq('ativo', true)
       .order('nome'),
+    supabase
+      .from('cobrancas')
+      .select('valor_centavos, status, vencimento, contrato_id')
+      .in('status', ['pendente', 'vencida']),
+    supabase
+      .from('webhook_logs')
+      .select('evento')
+      .eq('origem', 'asaas')
+      .gte('recebido_em', ha24h),
   ])
 
   const contratos = (data ?? []) as unknown as (Contrato & {
@@ -69,6 +105,41 @@ export default async function Contratos({
     cobrancasDoSelecionado = (cbs ?? []) as Cobranca[]
   }
 
+  type CobResumo = {
+    valor_centavos: number
+    status: string
+    vencimento: string
+    contrato_id: string
+  }
+  const listaCob = (cobrancas ?? []) as CobResumo[]
+
+  const ativos = contratos.filter((c) => c.status === 'ativo')
+  const mrr = ativos
+    .filter((c) => c.modo === 'recorrente')
+    .reduce((s, c) => s + Number(c.valor_centavos), 0)
+  const aVencer = listaCob
+    .filter((c) => c.status === 'pendente' && c.vencimento >= hoje && c.vencimento <= em30)
+    .reduce((s, c) => s + Number(c.valor_centavos), 0)
+  const emAtraso = listaCob
+    .filter((c) => c.status === 'vencida')
+    .reduce((s, c) => s + Number(c.valor_centavos), 0)
+  const ticket = ativos.length > 0 ? Math.round(mrr / ativos.length) : 0
+
+  /** Situação por contrato, derivada das cobranças em aberto. */
+  const situacaoDe = (id: string): 'em atraso' | 'a vencer' | 'em dia' => {
+    const minhas = listaCob.filter((c) => c.contrato_id === id)
+    if (minhas.some((c) => c.status === 'vencida')) return 'em atraso'
+    if (minhas.some((c) => c.status === 'pendente' && c.vencimento <= em30))
+      return 'a vencer'
+    return 'em dia'
+  }
+
+  const eventosAsaas = new Map<string, number>()
+  for (const h of (hooks ?? []) as { evento: string | null }[]) {
+    const chave = h.evento ?? 'sem evento'
+    eventosAsaas.set(chave, (eventosAsaas.get(chave) ?? 0) + 1)
+  }
+
   const querystring = (extra: Partial<Filtros>) => {
     const p = new URLSearchParams()
     for (const [k, v] of Object.entries({ ...f, ...extra })) if (v) p.set(k, String(v))
@@ -76,17 +147,71 @@ export default async function Contratos({
     return s ? `/contratos?${s}` : '/contratos'
   }
 
-  return (
-    <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold text-pleno">Contratos</h1>
-          <p className="text-sm text-tenue">{contratos.length} no filtro atual</p>
-        </div>
-        <WizardContrato clientes={listaClientes} templates={listaTemplates} />
-      </header>
+  const situacao = ['em dia', 'a vencer', 'em atraso'].find((s) => s === f.situacao)
+  const visiveis = situacao
+    ? contratos.filter((c) => situacaoDe(c.id) === situacao)
+    : contratos
+  const contaSituacao = (alvo: string) =>
+    contratos.filter((c) => situacaoDe(c.id) === alvo).length
 
-      <form className="flex flex-wrap gap-2 text-sm">
+  return (
+    <div className="space-y-3.5">
+      <CabecalhoTela
+        titulo="Contratos e cobrança"
+        meta={`${contratos.length} contrato(s) no filtro · ${ativos.length} ativo(s)`}
+        acoes={<WizardContrato clientes={listaClientes} templates={listaTemplates} />}
+      />
+
+      <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiTile
+          rotulo="Receita recorrente"
+          valor={formatBRL(mrr)}
+          acento="azul"
+          detalhe={<span>{ativos.length} contrato(s) ativo(s)</span>}
+        />
+        <KpiTile
+          rotulo="A vencer · 30 d"
+          valor={formatBRL(aVencer)}
+          acento="roxo"
+          detalhe={<span>cobranças pendentes na janela</span>}
+        />
+        <KpiTile
+          rotulo="Em atraso"
+          valor={formatBRL(emAtraso)}
+          acento={emAtraso > 0 ? 'magenta' : 'verde'}
+          detalhe={
+            <span>{listaCob.filter((c) => c.status === 'vencida').length} cobrança(s)</span>
+          }
+        />
+        <KpiTile
+          rotulo="Ticket médio"
+          valor={formatBRL(ticket)}
+          acento="ciano"
+          detalhe={<span>por contrato ativo</span>}
+        />
+      </div>
+
+      <BarraFiltros contagem={`${visiveis.length} de ${contratos.length}`}>
+        <ChipLink
+          href={querystring({ situacao: undefined })}
+          ativo={!situacao}
+          scroll={false}
+        >
+          todos · {contratos.length}
+        </ChipLink>
+        {(['em dia', 'a vencer', 'em atraso'] as const).map((s) => (
+          <ChipLink
+            key={s}
+            href={querystring({ situacao: situacao === s ? undefined : s })}
+            ativo={situacao === s}
+            scroll={false}
+          >
+            {s} · {contaSituacao(s)}
+          </ChipLink>
+        ))}
+      </BarraFiltros>
+
+      <form className="flex flex-wrap gap-2 text-[12.5px]">
         {[
           { nome: 'frente', vazio: 'Todas as frentes', opcoes: FRENTES.map((v) => [v, ROTULO_FRENTE[v]] as const) },
           { nome: 'tipo', vazio: 'Todos os tipos', opcoes: TIPOS_CONTRATO.map((v) => [v, ROTULO_TIPO[v]] as const) },
@@ -112,7 +237,7 @@ export default async function Contratos({
             key={campo.nome}
             name={campo.nome}
             defaultValue={(f as Record<string, string | undefined>)[campo.nome] ?? ''}
-            className="rounded-lg border border-borda bg-vidro px-3 py-2 text-sm text-corpo outline-none focus:border-azul"
+            className={CONTROLE}
           >
             <option value="">{campo.vazio}</option>
             {campo.opcoes.map(([valor, rotulo]) => (
@@ -122,12 +247,12 @@ export default async function Contratos({
             ))}
           </select>
         ))}
-        <button className="rounded-lg border border-borda px-3 py-2 text-sm text-corpo hover:border-suave hover:text-pleno">
+        <button className="min-h-[36px] cursor-pointer rounded-btn border border-borda-forte bg-white/[0.03] px-[15px] text-[12.5px] text-suave hover:border-azul/45 hover:text-corpo">
           Filtrar
         </button>
         <Link
           href="/contratos"
-          className="rounded-lg px-3 py-2 text-sm text-tenue hover:text-corpo"
+          className="inline-flex min-h-[36px] items-center px-3 text-[12.5px] text-tenue hover:text-corpo"
         >
           Limpar
         </Link>
@@ -137,14 +262,17 @@ export default async function Contratos({
         <Painel
           titulo={`${selecionado.codigo} · ${selecionado.clientes?.nome ?? ''}`}
           acao={
-            <Link href={querystring({ c: undefined })} className="text-xs text-tenue hover:text-corpo">
+            <Link
+              href={querystring({ c: undefined })}
+              className="font-mono text-[11px] text-tenue hover:text-corpo"
+            >
               fechar ×
             </Link>
           }
         >
           <TimelineContrato status={selecionado.status} />
 
-          <dl className="mt-6 grid gap-4 text-sm sm:grid-cols-4">
+          <dl className="mt-6 grid gap-4 sm:grid-cols-4">
             {[
               ['Frente', ROTULO_FRENTE[selecionado.frente]],
               ['Tipo', ROTULO_TIPO[selecionado.tipo] ?? selecionado.tipo],
@@ -159,14 +287,16 @@ export default async function Contratos({
               ['ZapSign', selecionado.zapsign_status ?? '—'],
             ].map(([rotulo, valor]) => (
               <div key={rotulo}>
-                <dt className="text-[11px] tracking-wide text-suave uppercase">{rotulo}</dt>
-                <dd className="mt-0.5 text-corpo">{valor}</dd>
+                <dt className="font-mono text-[9.5px] tracking-[0.2em] text-fantasma uppercase">
+                  {rotulo}
+                </dt>
+                <dd className="mt-1 font-mono text-[11.5px] text-mono">{valor}</dd>
               </div>
             ))}
           </dl>
 
           {selecionado.descricao && (
-            <p className="mt-4 text-sm whitespace-pre-wrap text-corpo">{selecionado.descricao}</p>
+            <p className="mt-4 text-[12.5px] leading-relaxed whitespace-pre-wrap text-corpo">{selecionado.descricao}</p>
           )}
 
           <div className="mt-5 flex flex-wrap items-start gap-2">
@@ -182,14 +312,21 @@ export default async function Contratos({
 
           {cobrancasDoSelecionado.length > 0 && (
             <div className="mt-6">
-              <p className="mb-2 text-[11px] tracking-wide text-suave uppercase">
+              <p className="mb-2 font-mono text-[9.5px] tracking-[0.2em] text-fantasma uppercase">
                 Cobranças do contrato
               </p>
-              <Tabela cabecalho={['Vencimento', 'Parcela', 'Status', 'Valor']}>
+              <Tabela
+                cabecalho={[
+                  'Vencimento',
+                  'Parcela',
+                  'Situação',
+                  { rotulo: 'Valor', numerica: true },
+                ]}
+              >
                 {cobrancasDoSelecionado.map((cb) => (
                   <Linha key={cb.id}>
-                    <Celula>{formatData(cb.vencimento)}</Celula>
-                    <Celula>
+                    <Celula mono>{formatData(cb.vencimento)}</Celula>
+                    <Celula mono>
                       {cb.parcela ? `${cb.parcela}/${cb.total_parcelas ?? '—'}` : '—'}
                     </Celula>
                     <Celula>
@@ -204,39 +341,115 @@ export default async function Contratos({
         </Painel>
       )}
 
-      <Painel>
-        {contratos.length === 0 ? (
-          <Vazio>Nenhum contrato com esses filtros.</Vazio>
-        ) : (
-          <Tabela
-            cabecalho={['Código', 'Cliente', 'Frente', 'Tipo', 'Modo', 'Status', 'Valor']}
+      <div className="grid gap-3.5 xl:grid-cols-[1.55fr_1fr]">
+        <Painel>
+          {visiveis.length === 0 ? (
+            <Vazio acao={<BotaoLink href="/contratos">Limpar filtros</BotaoLink>}>
+              Nenhum contrato com esses filtros
+            </Vazio>
+          ) : (
+            <Tabela
+              cabecalho={[
+                'Código',
+                'Cliente',
+                'Frente',
+                'Tipo',
+                'Situação',
+                'Assinatura',
+                { rotulo: 'Valor', numerica: true },
+              ]}
+              minima="56rem"
+            >
+              {visiveis.map((ct) => {
+                const sit = situacaoDe(ct.id)
+                return (
+                  <Linha key={ct.id}>
+                    <Celula>
+                      <Link
+                        href={querystring({ c: ct.id })}
+                        scroll={false}
+                        className="font-mono text-[11.5px] text-ciano hover:underline"
+                      >
+                        {ct.codigo}
+                      </Link>
+                    </Celula>
+                    <Celula>{ct.clientes?.nome ?? '—'}</Celula>
+                    <Celula>
+                      <FrenteTag frente={ct.frente} />
+                    </Celula>
+                    <Celula>
+                      {ROTULO_TIPO[ct.tipo] ?? ct.tipo}
+                      <span className="block font-mono text-[10px] text-fantasma">
+                        {ROTULO_MODO[ct.modo]}
+                      </span>
+                    </Celula>
+                    <Celula>
+                      <StatusBadge
+                        tom={
+                          sit === 'em atraso'
+                            ? 'magenta'
+                            : sit === 'a vencer'
+                              ? 'ambar'
+                              : 'verde'
+                        }
+                      >
+                        {sit}
+                      </StatusBadge>
+                    </Celula>
+                    <Celula>
+                      <StatusContratoChip status={ct.status} />
+                    </Celula>
+                    <Celula numerica>{formatBRL(Number(ct.valor_centavos))}</Celula>
+                  </Linha>
+                )
+              })}
+            </Tabela>
+          )}
+        </Painel>
+
+        <div className="space-y-3.5">
+          <Painel
+            titulo="Régua de cobrança Asaas"
+            nota="Disparada pelo cron de vencimentos, todo dia às 08:00"
           >
-            {contratos.map((ct) => (
-              <Linha key={ct.id}>
-                <Celula>
-                  <Link
-                    href={querystring({ c: ct.id })}
-                    scroll={false}
-                    className="font-mono text-xs text-azul hover:underline"
-                  >
-                    {ct.codigo}
-                  </Link>
-                </Celula>
-                <Celula>{ct.clientes?.nome ?? '—'}</Celula>
-                <Celula>
-                  <FrenteTag frente={ct.frente} />
-                </Celula>
-                <Celula>{ROTULO_TIPO[ct.tipo] ?? ct.tipo}</Celula>
-                <Celula>{ROTULO_MODO[ct.modo]}</Celula>
-                <Celula>
-                  <StatusContratoChip status={ct.status} />
-                </Celula>
-                <Celula numerica>{formatBRL(Number(ct.valor_centavos))}</Celula>
-              </Linha>
-            ))}
-          </Tabela>
-        )}
-      </Painel>
+            <ul className="divide-y divide-azul/[0.07]">
+              {REGUA.map((r) => (
+                <li key={r.quando} className="flex items-center gap-3 py-2.5">
+                  <Ponto tom={r.tom} />
+                  <span className="w-10 shrink-0 font-mono text-[10.5px] text-fantasma">
+                    {r.quando}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-[12.5px] text-corpo">
+                    {r.passo}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Painel>
+
+          <Painel titulo="Webhook Asaas · 24 h">
+            {eventosAsaas.size === 0 ? (
+              <Vazio>Nenhum evento do Asaas nas últimas 24 horas</Vazio>
+            ) : (
+              <ul className="divide-y divide-azul/[0.07]">
+                {[...eventosAsaas.entries()]
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([evento, qtd]) => (
+                    <li
+                      key={evento}
+                      className="flex items-center justify-between gap-3 py-2"
+                    >
+                      <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-mono">
+                        {evento}
+                      </span>
+                      <span className="tabular font-mono text-[12px] text-pleno">{qtd}</span>
+                    </li>
+                  ))}
+              </ul>
+            )}
+          </Painel>
+        </div>
+      </div>
     </div>
   )
 }

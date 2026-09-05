@@ -87,8 +87,12 @@ function Passos({
         {PASSOS.map((p, i) => (
           <li
             key={p}
-            className={`rounded-md px-2 py-1 ${
-              i === passo ? 'bg-azul text-abismo' : i < passo ? 'text-verde' : 'text-tenue'
+            className={`rounded-chip border px-2.5 py-1 font-mono ${
+              i === passo
+                ? 'border-ciano/50 bg-ciano/15 text-ciano-claro shadow-glow-ciano'
+                : i < passo
+                  ? 'border-verde/40 bg-verde/10 text-verde'
+                  : 'border-borda text-fantasma'
             }`}
           >
             {i + 1}. {p}
@@ -124,11 +128,11 @@ function Passos({
           <div className="space-y-3">
             {criadoId ? (
               <>
-                <p className="text-sm text-corpo">
+                <p className="text-[12.5px] text-corpo">
                   ✓ Contrato criado em rascunho. Envie para assinatura na ZapSign — a
                   cobrança no Asaas nasce quando o cliente assinar.
                 </p>
-                {erroEnvio && <p className="text-xs text-magenta">! {erroEnvio}</p>}
+                {erroEnvio && <p className="text-[11.5px] text-magenta-claro">! {erroEnvio}</p>}
                 <div className="flex flex-wrap gap-2">
                   <Botao
                     type="button"
@@ -149,12 +153,12 @@ function Passos({
                 </div>
               </>
             ) : (
-              <p className="text-sm text-tenue">Salvando…</p>
+              <p className="text-[12.5px] text-tenue">Salvando…</p>
             )}
           </div>
         )}
 
-        {estado && !estado.ok && <p className="mt-4 text-xs text-magenta">! {estado.erro}</p>}
+        {estado && !estado.ok && <p className="mt-4 text-[11.5px] text-magenta-claro">! {estado.erro}</p>}
 
         {passo < 3 && (
           <div className="mt-5 flex gap-2">

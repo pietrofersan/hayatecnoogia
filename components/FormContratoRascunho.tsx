@@ -94,7 +94,7 @@ function Formulario({
       />
       <CamposValores modo={modo} aoTrocarModo={setModo} contrato={contrato} />
 
-      {estado && !estado.ok && <p className="text-xs text-magenta">! {estado.erro}</p>}
+      {estado && !estado.ok && <p className="text-[11.5px] text-magenta-claro">! {estado.erro}</p>}
 
       <div className="flex gap-2">
         <Botao type="submit" disabled={salvando}>

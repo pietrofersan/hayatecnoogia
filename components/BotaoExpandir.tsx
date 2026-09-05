@@ -26,7 +26,7 @@ export function BotaoExpandir({ segmentoId }: { segmentoId: string }) {
       >
         {pendente ? 'Expandindo…' : '✦ Expandir com IA'}
       </Botao>
-      {erro && <p className="mt-2 text-xs text-magenta">! {erro}</p>}
+      {erro && <p className="mt-2 text-[11.5px] text-magenta-claro">! {erro}</p>}
     </div>
   )
 }

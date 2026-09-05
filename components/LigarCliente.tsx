@@ -47,7 +47,7 @@ export function LigarCliente({
       >
         {pendente ? 'Vinculando…' : 'Virar projeto de cliente'}
       </Botao>
-      {erro && <p className="text-xs text-magenta">! {erro}</p>}
+      {erro && <p className="text-[11.5px] text-magenta-claro">! {erro}</p>}
     </div>
   )
 }

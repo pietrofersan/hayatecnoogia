@@ -25,7 +25,7 @@ export function FormResposta({
   return (
     <div className="space-y-2">
       {janelaExpirada && (
-        <p className="rounded-lg border border-magenta/40 bg-magenta/10 px-3 py-2 text-xs text-magenta">
+        <p className="rounded-ctrl border border-magenta/40 bg-magenta/10 px-3 py-2 text-[11.5px] text-magenta-claro">
           Fora da janela de 24h do WhatsApp. Quando o canal estiver conectado,
           reabrir a conversa vai exigir um template aprovado — regra da Meta,
           não nossa.
@@ -37,7 +37,7 @@ export function FormResposta({
         onChange={(e) => setCorpo(e.target.value)}
         rows={3}
         placeholder="Escreva a resposta…"
-        className="w-full resize-y rounded-lg border border-borda bg-abismo px-3 py-2 text-sm text-pleno outline-none placeholder:text-tenue focus:border-azul"
+        className="w-full resize-y rounded-ctrl border border-borda-forte bg-[rgba(10,15,30,.72)] px-3.5 py-2.5 text-[13px] text-pleno outline-none transition placeholder:text-fantasma focus:border-ciano focus:shadow-[0_0_0_3px_rgba(34,211,238,.12)]"
       />
 
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -63,7 +63,7 @@ export function FormResposta({
         </Botao>
       </div>
 
-      {erro && <p className="text-xs text-magenta">! {erro}</p>}
+      {erro && <p className="text-[11.5px] text-magenta-claro">! {erro}</p>}
     </div>
   )
 }

@@ -159,3 +159,186 @@ export async function resumoDashboard(): Promise<ResumoDashboard> {
     sites: (sites ?? []) as Site[],
   }
 }
+
+// Pulso do dashboard (README §1) -------------------------------------
+
+export type LinhaLog = {
+  id: string
+  titulo: string
+  meta: string
+  estado: 'ok' | 'aguardando' | 'falhou'
+}
+
+export type ItemAgenda = {
+  id: string
+  quando: string
+  modulo: 'Cobranças' | 'Contratos' | 'Domínios' | 'Leads'
+  titulo: string
+}
+
+export type PulsoDashboard = {
+  clientesAtivos: number
+  dominios60d: number
+  dominiosSemAuto: number
+  contratos30d: { qtd: number; centavos: number }
+  logs: LinhaLog[]
+  agenda: ItemAgenda[]
+  /** 0–100: quantos dos cinco sinais de operação estão em ordem */
+  saude: number
+  sinais: { rotulo: string; ok: boolean }[]
+}
+
+function haQuanto(iso: string): string {
+  const min = Math.round((Date.now() - new Date(iso).getTime()) / 6e4)
+  if (min < 1) return 'agora há pouco'
+  if (min < 60) return `há ${min} min`
+  return `há ${Math.round(min / 60)} h`
+}
+
+/**
+ * O que o dashboard mostra além dos números de receita: o que rodou nas
+ * últimas 24 h, o que vence hoje e um índice de saúde que é só a contagem
+ * dos sinais em ordem — nada de índice proprietário.
+ */
+export async function pulsoDashboard(): Promise<PulsoDashboard> {
+  const supabase = await supabaseServidor()
+  const hoje = new Date().toISOString().slice(0, 10)
+  const em7 = new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10)
+  const em60 = new Date(Date.now() + 60 * 864e5).toISOString().slice(0, 10)
+  const ha24h = new Date(Date.now() - 864e5).toISOString()
+  const ha30d = new Date(Date.now() - 30 * 864e5).toISOString()
+
+  const [
+    { data: clientes },
+    { data: dominios },
+    { data: novos },
+    { data: hooks },
+    { data: venceHoje },
+    { data: contratosHoje },
+    { data: sites },
+    { data: leadsParados },
+  ] = await Promise.all([
+    supabase.from('contratos').select('cliente_id').eq('status', 'ativo'),
+    supabase
+      .from('dominios_radar')
+      .select('id, dominio, expira_em, clientes(nome)')
+      .eq('ativo', true)
+      .not('expira_em', 'is', null)
+      .lte('expira_em', em60)
+      .order('expira_em'),
+    supabase
+      .from('contratos')
+      .select('valor_centavos')
+      .eq('status', 'ativo')
+      .gte('criado_em', ha30d),
+    supabase
+      .from('webhook_logs')
+      .select('id, origem, evento, erro, processado, recebido_em')
+      .gte('recebido_em', ha24h)
+      .order('recebido_em', { ascending: false })
+      .limit(5),
+    supabase
+      .from('cobrancas')
+      .select('id, valor_centavos, vencimento, contratos(codigo, clientes(nome))')
+      .eq('status', 'pendente')
+      .eq('vencimento', hoje),
+    supabase
+      .from('contratos')
+      .select('id, codigo, fim, clientes(nome)')
+      .eq('status', 'ativo')
+      .eq('fim', hoje),
+    supabase.from('sites').select('id, uptime_ok, ssl_expira'),
+    supabase
+      .from('leads')
+      .select('id, nome, site, criado_em')
+      .eq('lido', false)
+      .lte('criado_em', new Date(Date.now() - 36e5).toISOString())
+      .order('criado_em')
+      .limit(4),
+  ])
+
+  type Dom = { id: string; dominio: string; expira_em: string | null; clientes: { nome: string } | null }
+  type Cob = { id: string; vencimento: string; contratos: { codigo: string; clientes: { nome: string } | null } | null }
+  type Con = { id: string; codigo: string; fim: string | null; clientes: { nome: string } | null }
+  type Led = { id: string; nome: string | null; site: string | null; criado_em: string }
+  type Hook = { id: number; origem: string; evento: string | null; erro: string | null; processado: boolean; recebido_em: string }
+  type Sit = { id: string; uptime_ok: boolean | null; ssl_expira: string | null }
+
+  const listaDom = (dominios ?? []) as unknown as Dom[]
+  const listaSites = (sites ?? []) as Sit[]
+
+  const logs: LinhaLog[] = ((hooks ?? []) as Hook[]).map((h) => ({
+    id: String(h.id),
+    titulo: `${h.origem} · ${h.evento ?? 'evento sem nome'}`,
+    meta: haQuanto(h.recebido_em),
+    estado: h.erro ? 'falhou' : h.processado ? 'ok' : 'aguardando',
+  }))
+
+  const agenda: ItemAgenda[] = [
+    ...((venceHoje ?? []) as unknown as Cob[]).map((c) => ({
+      id: `cob-${c.id}`,
+      quando: 'hoje',
+      modulo: 'Cobranças' as const,
+      titulo: `${c.contratos?.clientes?.nome ?? 'Cliente'} · ${c.contratos?.codigo ?? '—'}`,
+    })),
+    ...((contratosHoje ?? []) as unknown as Con[]).map((c) => ({
+      id: `con-${c.id}`,
+      quando: 'hoje',
+      modulo: 'Contratos' as const,
+      titulo: `${c.codigo} encerra · ${c.clientes?.nome ?? 'sem cliente'}`,
+    })),
+    ...listaDom
+      .filter((d) => d.expira_em && d.expira_em <= em7)
+      .slice(0, 3)
+      .map((d) => ({
+        id: `dom-${d.id}`,
+        quando: new Date(d.expira_em!).toLocaleDateString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+        }),
+        modulo: 'Domínios' as const,
+        titulo: `${d.dominio} vence`,
+      })),
+    ...((leadsParados ?? []) as Led[]).map((l) => ({
+      id: `lead-${l.id}`,
+      quando: haQuanto(l.criado_em),
+      modulo: 'Leads' as const,
+      titulo: `${l.nome ?? 'Lead sem nome'} sem contato`,
+    })),
+  ].slice(0, 6)
+
+  const vencidasCount = await supabase
+    .from('cobrancas')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'vencida')
+
+  const sinais = [
+    { rotulo: 'Nenhuma cobrança vencida', ok: (vencidasCount.count ?? 0) === 0 },
+    { rotulo: 'Todos os sites no ar', ok: listaSites.every((s) => s.uptime_ok !== false) },
+    {
+      rotulo: 'Certificados SSL válidos',
+      ok: listaSites.every((s) => !s.ssl_expira || s.ssl_expira > em7),
+    },
+    { rotulo: 'Nenhum domínio vencendo em 7 d', ok: !listaDom.some((d) => d.expira_em! <= em7) },
+    { rotulo: 'Webhooks sem falha em 24 h', ok: !logs.some((l) => l.estado === 'falhou') },
+  ]
+
+  return {
+    clientesAtivos: new Set(
+      ((clientes ?? []) as { cliente_id: string }[]).map((c) => c.cliente_id),
+    ).size,
+    dominios60d: listaDom.length,
+    dominiosSemAuto: listaDom.filter((d) => d.expira_em && d.expira_em <= em7).length,
+    contratos30d: {
+      qtd: (novos ?? []).length,
+      centavos: ((novos ?? []) as { valor_centavos: number }[]).reduce(
+        (s, c) => s + Number(c.valor_centavos),
+        0,
+      ),
+    },
+    logs,
+    agenda,
+    saude: Math.round((sinais.filter((s) => s.ok).length / sinais.length) * 100),
+    sinais,
+  }
+}

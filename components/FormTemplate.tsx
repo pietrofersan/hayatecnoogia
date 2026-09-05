@@ -79,10 +79,10 @@ function Formulario({
         rotulo="Corpo (HTML)"
         dica="Merge tags: {{cliente.nome}} · {{cliente.documento}} · {{contrato.codigo}} · {{valor}} · {{parcelas}} · {{vigencia}} · {{dia_vencimento}}"
       >
-        <AreaTexto name="corpo_html" rows={12} required className="font-mono text-xs" />
+        <AreaTexto name="corpo_html" rows={12} required className="font-mono text-[11.5px]" />
       </Campo>
 
-      {estado && !estado.ok && <p className="text-xs text-magenta">! {estado.erro}</p>}
+      {estado && !estado.ok && <p className="text-[11.5px] text-magenta-claro">! {estado.erro}</p>}
 
       <div className="flex gap-2">
         <Botao type="submit" disabled={pendente}>

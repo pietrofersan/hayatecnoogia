@@ -8,7 +8,7 @@ export function AcoesLead({ lead }: { lead: Lead }) {
   const [pendente, iniciar] = useTransition()
 
   return (
-    <div className="flex gap-3 text-xs">
+    <div className="flex gap-2.5 text-[11.5px]">
       <button
         disabled={pendente}
         onClick={() => iniciar(() => marcarLead(lead.id, 'lido', !lead.lido))}

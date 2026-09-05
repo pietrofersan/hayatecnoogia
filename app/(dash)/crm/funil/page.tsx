@@ -1,4 +1,5 @@
-import { Vazio } from '@/components/Painel'
+import { Avatar } from '@/components/Avatar'
+import { Painel, Vazio } from '@/components/Painel'
 import { CRM_WORKSPACE_ID } from '@/lib/crm'
 import { supabaseServidor } from '@/lib/supabase'
 
@@ -37,47 +38,66 @@ export default async function FunilPage() {
   }
 
   if (!estagios?.length) {
-    return <Vazio>Nenhum estágio configurado para este workspace.</Vazio>
+    return (
+      <Painel>
+        <Vazio>Nenhum estágio configurado para este workspace</Vazio>
+      </Painel>
+    )
   }
 
   return (
-    <div className="flex gap-4 overflow-x-auto pb-2">
+    <div className="-mx-1 flex gap-2.5 overflow-x-auto px-1 pb-2 max-md:flex-col">
       {estagios.map((estagio) => {
         const cartoes = porEstagio.get(estagio.id) ?? []
         return (
-          <div
+          <section
             key={estagio.id}
-            className="flex w-72 shrink-0 flex-col rounded-xl border border-borda bg-vidro"
+            className="flex w-[230px] shrink-0 flex-col rounded-card border border-borda bg-vidro shadow-vidro backdrop-blur-[18px] max-md:w-full"
           >
-            <div className="flex items-center gap-2 border-b border-borda px-3 py-2.5">
+            <header className="flex items-center gap-2 border-b border-borda px-3.5 py-3">
               <span
-                className="size-2 rounded-full"
-                style={{ backgroundColor: estagio.color }}
                 aria-hidden
+                className="size-[7px] shrink-0 rounded-full"
+                style={{
+                  backgroundColor: estagio.color,
+                  boxShadow: `0 0 10px ${estagio.color}`,
+                }}
               />
-              <span className="text-sm font-medium text-pleno">{estagio.name}</span>
-              <span className="ml-auto text-xs text-tenue">{cartoes.length}</span>
-            </div>
+              <span className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-pleno">
+                {estagio.name}
+              </span>
+              <span className="tabular font-mono text-[10.5px] text-fantasma">
+                {cartoes.length}
+              </span>
+            </header>
+
             <div className="flex min-h-24 flex-col gap-2 p-2">
               {cartoes.length === 0 ? (
-                <p className="px-2 py-4 text-center text-xs text-tenue">Vazio</p>
+                <p className="px-2 py-5 text-center font-mono text-[10.5px] text-fantasma">
+                  vazio
+                </p>
               ) : (
                 cartoes.map((c) => (
-                  <div
+                  <article
                     key={c.id}
-                    className="rounded-lg border border-borda bg-abismo px-3 py-2.5"
+                    className="flex items-center gap-2.5 rounded-ctrl border border-borda bg-white/[0.03] px-3 py-2.5 transition-colors hover:border-azul/45"
                   >
-                    <p className="text-sm text-pleno">{c.contacts?.name ?? 'Sem nome'}</p>
-                    <p className="mt-0.5 text-xs text-tenue">
-                      #{c.ticket_number}
-                      {c.last_message_at &&
-                        ` · ${new Date(c.last_message_at).toLocaleDateString('pt-BR')}`}
-                    </p>
-                  </div>
+                    <Avatar nome={c.contacts?.name ?? '?'} tamanho={26} />
+                    <div className="min-w-0">
+                      <p className="truncate text-[12px] text-pleno">
+                        {c.contacts?.name ?? 'Sem nome'}
+                      </p>
+                      <p className="truncate font-mono text-[10px] text-tenue">
+                        #{c.ticket_number}
+                        {c.last_message_at &&
+                          ` · ${new Date(c.last_message_at).toLocaleDateString('pt-BR')}`}
+                      </p>
+                    </div>
+                  </article>
                 ))
               )}
             </div>
-          </div>
+          </section>
         )
       })}
     </div>

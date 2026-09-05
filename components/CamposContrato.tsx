@@ -58,7 +58,7 @@ export function CamposIdentificacao({
         </Selecao>
       </Campo>
       {cliente && !cliente.email && !cliente.whatsapp && (
-        <p className="text-xs text-ambar sm:col-span-2">
+        <p className="text-[11.5px] text-ambar sm:col-span-2">
           ! Este cliente não tem e-mail nem WhatsApp — o envio para assinatura vai falhar.
         </p>
       )}

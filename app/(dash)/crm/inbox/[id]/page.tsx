@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { AcoesConversa } from '@/components/AcoesConversa'
+import { Avatar } from '@/components/Avatar'
+import { StatusBadge } from '@/components/StatusBadge'
 import { FormResposta } from '@/components/FormResposta'
 import { Painel, Vazio } from '@/components/Painel'
 import { ROTULO_CANAL } from '@/lib/crm'
@@ -78,25 +80,36 @@ export default async function ThreadConversa({
   let diaAnterior = ''
 
   return (
-    <div className="space-y-4">
-      <Link href="/crm/inbox" className="text-xs text-tenue hover:text-corpo">
+    <div className="space-y-3.5">
+      <Link
+        href="/crm/inbox"
+        className="inline-block text-[11.5px] text-tenue hover:text-corpo"
+      >
         ← Conversas
       </Link>
 
       <Painel>
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h2 className="text-corpo font-medium text-pleno">
-              {conversa.contacts?.name ?? 'Sem nome'}
-              <span className="ml-2 text-xs text-tenue">#{conversa.ticket_number}</span>
-            </h2>
-            <p className="text-xs text-tenue">
-              {ROTULO_CANAL[conversa.channel_accounts?.channel ?? ''] ?? '—'}
-              {' · '}
-              {conversa.contacts?.phone ?? conversa.contacts?.external_id ?? '—'}
-              {conversa.channel_accounts?.display_name &&
-                ` · via ${conversa.channel_accounts.display_name}`}
-            </p>
+          <div className="flex min-w-0 items-center gap-3">
+            <Avatar nome={conversa.contacts?.name ?? '?'} tamanho={40} />
+            <div className="min-w-0">
+              <h2 className="flex flex-wrap items-center gap-2 text-[14px] font-semibold text-pleno">
+                {conversa.contacts?.name ?? 'Sem nome'}
+                <span className="font-mono text-[10px] font-normal text-fantasma">
+                  #{conversa.ticket_number}
+                </span>
+                {janelaExpirada && (
+                  <StatusBadge tom="magenta">fora da janela de 24 h</StatusBadge>
+                )}
+              </h2>
+              <p className="mt-0.5 truncate font-mono text-[10.5px] text-tenue">
+                {ROTULO_CANAL[conversa.channel_accounts?.channel ?? ''] ?? '—'}
+                {' · '}
+                {conversa.contacts?.phone ?? conversa.contacts?.external_id ?? '—'}
+                {conversa.channel_accounts?.display_name &&
+                  ` · via ${conversa.channel_accounts.display_name}`}
+              </p>
+            </div>
           </div>
           <AcoesConversa
             conversaId={conversa.id}
@@ -112,7 +125,7 @@ export default async function ThreadConversa({
 
       <Painel>
         {mensagens.length === 0 ? (
-          <Vazio>Nenhuma mensagem nesta conversa ainda.</Vazio>
+          <Vazio>Nenhuma mensagem nesta conversa ainda</Vazio>
         ) : (
           <ul className="space-y-3">
             {mensagens.map((m) => {
@@ -124,16 +137,16 @@ export default async function ThreadConversa({
               return (
                 <li key={m.id}>
                   {novoDia && (
-                    <p className="my-4 text-center text-[11px] tracking-wide text-tenue uppercase">
+                    <p className="my-4 text-center font-mono text-[9.5px] tracking-[0.2em] text-fantasma uppercase">
                       {dia}
                     </p>
                   )}
                   <div className={`flex ${minha ? 'justify-end' : 'justify-start'}`}>
                     <div
-                      className={`max-w-[75%] rounded-xl px-3 py-2 text-sm ${
+                      className={`max-w-[75%] rounded-card px-3.5 py-2.5 text-[12.5px] ${
                         minha
-                          ? 'bg-azul/15 text-pleno'
-                          : 'border border-borda bg-abismo text-corpo'
+                          ? 'bg-linear-to-br from-ciano/25 to-azul/20 text-pleno shadow-glow-azul'
+                          : 'border border-borda bg-white/[0.03] text-corpo'
                       }`}
                     >
                       {m.body ? (
@@ -141,16 +154,16 @@ export default async function ThreadConversa({
                       ) : m.media_url ? (
                         <a
                           href={m.media_url}
-                          className="text-azul underline"
+                          className="text-ciano underline"
                           target="_blank"
                           rel="noreferrer"
                         >
                           Mídia
                         </a>
                       ) : (
-                        <p className="text-tenue">—</p>
+                        <p className="text-fantasma">—</p>
                       )}
-                      <p className="mt-1 text-[10px] text-tenue">
+                      <p className="mt-1.5 font-mono text-[9.5px] text-tenue">
                         {horaDe(m.created_at)}
                         {minha && ` · ${ROTULO_STATUS_MENSAGEM[m.status]}`}
                       </p>

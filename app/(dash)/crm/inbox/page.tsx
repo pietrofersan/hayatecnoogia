@@ -1,14 +1,26 @@
 import Link from 'next/link'
+import { Avatar } from '@/components/Avatar'
+import { BotaoLink } from '@/components/Campo'
+import { ChipLink } from '@/components/Chip'
 import { Painel, Vazio } from '@/components/Painel'
+import { StatusBadge, type TomBadge } from '@/components/StatusBadge'
 import { CRM_WORKSPACE_ID, ROTULO_CANAL } from '@/lib/crm'
 import { supabaseServidor } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
 
-const ROTULO_STATUS: Record<string, { rotulo: string; icone: string; classe: string }> = {
-  open: { rotulo: 'Ativo', icone: '●', classe: 'text-verde' },
-  pending: { rotulo: 'Pendente', icone: '○', classe: 'text-ambar' },
-  closed: { rotulo: 'Encerrado', icone: '×', classe: 'text-tenue' },
+const STATUS: Record<string, { rotulo: string; tom: TomBadge }> = {
+  open: { rotulo: 'ativo', tom: 'verde' },
+  pending: { rotulo: 'pendente', tom: 'ambar' },
+  closed: { rotulo: 'encerrado', tom: 'neutro' },
+}
+
+const TOM_CANAL: Record<string, TomBadge> = {
+  whatsapp_qr: 'verde',
+  whatsapp_cloud: 'verde',
+  instagram: 'magenta',
+  facebook: 'azul',
+  mercado_livre: 'ambar',
 }
 
 type Conversa = {
@@ -22,7 +34,12 @@ type Conversa = {
   pipeline_stages: { name: string; color: string } | null
 }
 
-export default async function InboxPage() {
+export default async function InboxPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ pendentes?: string }>
+}) {
+  const { pendentes } = await searchParams
   const supabase = await supabaseServidor()
 
   const { data } = await supabase
@@ -33,47 +50,90 @@ export default async function InboxPage() {
     .eq('workspace_id', CRM_WORKSPACE_ID)
     .order('last_message_at', { ascending: false, nullsFirst: false })
 
-  const conversas = data as unknown as Conversa[] | null
+  const todas = (data ?? []) as unknown as Conversa[]
+  const soPendentes = pendentes === '1'
+  const conversas = soPendentes ? todas.filter((c) => c.status === 'pending') : todas
+  const qtdPendentes = todas.filter((c) => c.status === 'pending').length
 
   return (
-    <Painel titulo={`Conversas${conversas?.length ? ` · ${conversas.length}` : ''}`}>
-      {!conversas?.length ? (
-        <Vazio>
-          Nenhuma conversa ainda — aparecem aqui quando o primeiro canal
-          (WhatsApp, Instagram...) estiver conectado.
+    <Painel
+      titulo="Conversas"
+      acao={
+        <span className="font-mono text-[10.5px] text-fantasma">
+          {conversas.length} de {todas.length}
+        </span>
+      }
+    >
+      <div className="mb-4 flex flex-wrap gap-2">
+        <ChipLink href="/crm/inbox" ativo={!soPendentes} scroll={false}>
+          todas · {todas.length}
+        </ChipLink>
+        <ChipLink
+          href={soPendentes ? '/crm/inbox' : '/crm/inbox?pendentes=1'}
+          ativo={soPendentes}
+          scroll={false}
+        >
+          só sem resposta · {qtdPendentes}
+        </ChipLink>
+      </div>
+
+      {conversas.length === 0 ? (
+        <Vazio
+          descricao={
+            todas.length === 0
+              ? 'Aparecem aqui quando o primeiro canal (WhatsApp, Instagram…) estiver conectado.'
+              : undefined
+          }
+          acao={soPendentes ? <BotaoLink href="/crm/inbox">Ver todas</BotaoLink> : undefined}
+        >
+          {todas.length === 0 ? 'Nenhuma conversa ainda' : 'Nenhuma conversa sem resposta'}
         </Vazio>
       ) : (
-        <ul className="-mx-5 divide-y divide-borda/60">
+        <ul className="-mx-[22px] divide-y divide-azul/[0.07]">
           {conversas.map((c) => {
             const janelaExpirada =
               c.window_expires_at && new Date(c.window_expires_at) < new Date()
-            const status = ROTULO_STATUS[c.status]
+            const status = STATUS[c.status]
+            const canal = c.channel_accounts?.channel ?? ''
             return (
               <li key={c.id}>
                 <Link
                   href={`/crm/inbox/${c.id}`}
-                  className="flex items-center gap-3 px-5 py-3 hover:bg-borda/30"
+                  className="flex items-center gap-3 px-[22px] py-3 transition-colors hover:bg-azul/[0.07]"
                 >
+                  <Avatar nome={c.contacts?.name ?? '?'} tamanho={34} />
+
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="truncate text-sm font-medium text-pleno">
+                      <span className="truncate text-[12.5px] font-medium text-pleno">
                         {c.contacts?.name ?? 'Sem nome'}
                       </span>
-                      <span className="text-xs text-tenue">#{c.ticket_number}</span>
+                      <span className="font-mono text-[10px] text-fantasma">
+                        #{c.ticket_number}
+                      </span>
                       {janelaExpirada && (
-                        <span className="rounded bg-magenta/15 px-1.5 py-0.5 text-[10px] text-magenta">
-                          FORA DA JANELA DE 24H
-                        </span>
+                        <StatusBadge tom="magenta">fora da janela de 24 h</StatusBadge>
                       )}
                     </div>
-                    <p className="text-xs text-tenue">
-                      {ROTULO_CANAL[c.channel_accounts?.channel ?? ''] ?? '—'}
+                    <p className="mt-0.5 truncate font-mono text-[10.5px] text-tenue">
+                      {ROTULO_CANAL[canal] ?? '—'}
                       {c.pipeline_stages && ` · ${c.pipeline_stages.name}`}
+                      {c.last_message_at &&
+                        ` · ${new Date(c.last_message_at).toLocaleString('pt-BR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}`}
                     </p>
                   </div>
-                  <span className={`shrink-0 text-xs ${status.classe}`}>
-                    <span aria-hidden>{status.icone}</span> {status.rotulo}
-                  </span>
+
+                  <StatusBadge tom={TOM_CANAL[canal] ?? 'neutro'}>
+                    {ROTULO_CANAL[canal] ?? 'canal'}
+                  </StatusBadge>
+                  <StatusBadge tom={status.tom} ponto={c.status === 'pending'}>
+                    {status.rotulo}
+                  </StatusBadge>
                 </Link>
               </li>
             )

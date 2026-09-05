@@ -23,17 +23,21 @@ export function BarRow({
 
   return (
     <div className="group grid grid-cols-[7.5rem_1fr_auto] items-center gap-3 py-1.5">
-      <span className="truncate text-xs text-corpo">{rotulo}</span>
+      <span className="truncate text-[12px] text-suave">{rotulo}</span>
       <span
         className="h-2 rounded-r-[4px] bg-borda/60"
         title={dica ?? `${rotulo}: ${valorFormatado}`}
       >
         <span
           className="block h-2 rounded-r-[4px] transition-[width] duration-500"
-          style={{ width: `${largura}%`, background: cor }}
+          style={{
+            width: `${largura}%`,
+            background: cor,
+            boxShadow: `0 0 12px ${cor}`,
+          }}
         />
       </span>
-      <span className="tabular text-xs text-corpo">{valorFormatado}</span>
+      <span className="tabular font-mono text-[11.5px] text-mono">{valorFormatado}</span>
     </div>
   )
 }

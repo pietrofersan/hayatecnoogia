@@ -5,6 +5,14 @@ import { supabaseAdmin, supabaseServidor } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
 
+/** A tela de acesso nunca espera pelo banco: 1,5 s e a faixa some. */
+function comPrazo<T>(promessa: Promise<T>, ms = 1500): Promise<T | null> {
+  return Promise.race([
+    promessa,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+  ])
+}
+
 /**
  * Números da coluna da marca. São reais: contagem de palavras medidas,
  * segmentos ativos e horário da última checagem do radar. Se o banco não
@@ -13,17 +21,21 @@ export const dynamic = 'force-dynamic'
 async function metricas() {
   try {
     const db = supabaseAdmin()
-    const [palavras, segmentos, ultima] = await Promise.all([
-      db.from('palavras_chave').select('id', { count: 'exact', head: true }),
-      db.from('segmentos').select('id', { count: 'exact', head: true }),
-      db
-        .from('dominios_radar')
-        .select('checado_em')
-        .not('checado_em', 'is', null)
-        .order('checado_em', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-    ])
+    const resultado = await comPrazo(
+      Promise.all([
+        db.from('palavras_chave').select('id', { count: 'exact', head: true }),
+        db.from('segmentos').select('id', { count: 'exact', head: true }),
+        db
+          .from('dominios_radar')
+          .select('checado_em')
+          .not('checado_em', 'is', null)
+          .order('checado_em', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]),
+    )
+    if (!resultado) return undefined
+    const [palavras, segmentos, ultima] = resultado
 
     const hora = ultima.data?.checado_em
       ? new Date(ultima.data.checado_em).toLocaleTimeString('pt-BR', {

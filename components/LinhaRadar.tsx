@@ -7,12 +7,23 @@ import type { DominioRadar } from '@/lib/db'
 import { ROTULO_ESTADO_DOMINIO } from '@/lib/db'
 import { formatData } from '@/lib/money'
 import { diasAte } from '@/lib/radar'
+import { Botao } from './Campo'
+import { StatusBadge, type TomBadge } from './StatusBadge'
 import { Celula, Linha } from './Tabela'
 
-const COR: Record<DominioRadar['estado'], string> = {
-  livre: 'text-verde',
-  registrado: 'text-suave',
-  indeterminado: 'text-tenue',
+const TOM: Record<DominioRadar['estado'], TomBadge> = {
+  livre: 'verde',
+  registrado: 'neutro',
+  indeterminado: 'ambar',
+}
+
+/** Cor por urgência (README §6): ≤7 magenta, ≤30 âmbar, ≤60 azul, resto apagado. */
+function corDoPrazo(dias: number | null): string {
+  if (dias === null) return 'text-fantasma'
+  if (dias <= 7) return 'text-magenta-claro'
+  if (dias <= 30) return 'text-ambar'
+  if (dias <= 60) return 'text-azul-claro'
+  return 'text-mono'
 }
 
 export function LinhaRadar({
@@ -27,55 +38,54 @@ export function LinhaRadar({
   const [erro, setErro] = useState<string | null>(null)
 
   const dias = diasAte(dominio.expira_em)
-  const perto = dias !== null && dias <= 60
 
   return (
     <Linha>
       <Celula>
-        <span className={dominio.ativo ? 'text-pleno' : 'text-tenue line-through'}>
+        <span
+          className={`font-mono text-[12px] ${
+            dominio.ativo ? 'text-pleno' : 'text-fantasma line-through'
+          }`}
+        >
           {dominio.dominio}
         </span>
         {dominio.motivo && (
-          <span className="block text-[11px] text-tenue">{dominio.motivo}</span>
+          <span className="block text-[10.5px] text-tenue">{dominio.motivo}</span>
         )}
-        {cliente && <span className="block text-[11px] text-azul">{cliente}</span>}
       </Celula>
 
       <Celula>
-        <span className={COR[dominio.estado]}>{ROTULO_ESTADO_DOMINIO[dominio.estado]}</span>
+        {cliente ?? <span className="text-fantasma">— sem cliente —</span>}
+      </Celula>
+
+      <Celula>
+        <StatusBadge tom={TOM[dominio.estado]} brilho={dominio.estado === 'livre'}>
+          {ROTULO_ESTADO_DOMINIO[dominio.estado]}
+        </StatusBadge>
       </Celula>
 
       <Celula>
         {dominio.expira_em ? (
-          <span className={perto ? 'text-ambar' : undefined}>
+          <span className={`font-mono text-[11.5px] ${corDoPrazo(dias)}`}>
+            {dias !== null && (dias < 0 ? 'venceu · ' : `${dias} d · `)}
             {formatData(dominio.expira_em)}
-            {dias !== null && (
-              <span className="block text-[11px] text-tenue">
-                {dias < 0 ? 'já passou' : `em ${dias} dia(s)`}
-              </span>
-            )}
           </span>
         ) : (
-          '—'
+          <span className="font-mono text-[11.5px] text-fantasma">—</span>
         )}
       </Celula>
 
-      <Celula>
-        <span className="text-[11px] text-tenue">{dominio.registrador ?? '—'}</span>
+      <Celula mono>{dominio.registrador ?? '—'}</Celula>
+
+      <Celula mono>
+        {dominio.checado_em ? formatData(dominio.checado_em) : 'nunca'}
       </Celula>
 
-      <Celula>
-        <span className="text-[11px] text-tenue">
-          {dominio.checado_em ? formatData(dominio.checado_em) : 'nunca'}
-        </span>
-      </Celula>
-
-      <Celula>
-        <div className="flex justify-end gap-3 text-xs">
-          <button
-            type="button"
+      <Celula numerica>
+        <div className="flex justify-end gap-2">
+          <Botao
+            variante="secundario"
             disabled={pendente}
-            className="text-suave hover:text-pleno disabled:opacity-50"
             onClick={() =>
               iniciar(async () => {
                 setErro(null)
@@ -86,11 +96,10 @@ export function LinhaRadar({
             }
           >
             {pendente ? '…' : 'Checar'}
-          </button>
-          <button
-            type="button"
+          </Botao>
+          <Botao
+            variante="texto"
             disabled={pendente}
-            className="text-tenue hover:text-pleno disabled:opacity-50"
             onClick={() =>
               iniciar(async () => {
                 await alternarRadar(dominio.id, !dominio.ativo)
@@ -99,9 +108,9 @@ export function LinhaRadar({
             }
           >
             {dominio.ativo ? 'Pausar' : 'Retomar'}
-          </button>
+          </Botao>
         </div>
-        {erro && <p className="text-right text-[11px] text-magenta">! {erro}</p>}
+        {erro && <p className="mt-1 text-right text-[10.5px] text-magenta-claro">! {erro}</p>}
       </Celula>
     </Linha>
   )

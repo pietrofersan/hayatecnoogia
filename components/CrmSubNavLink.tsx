@@ -17,10 +17,9 @@ export function CrmSubNavLink({
   return (
     <Link
       href={href}
-      className={`rounded-md px-3 py-1.5 text-sm transition-colors ${
-        ativo
-          ? 'bg-borda text-pleno'
-          : 'text-suave hover:text-corpo'
+      aria-current={ativo ? 'page' : undefined}
+      className={`inline-flex min-h-[44px] items-center border-b-2 px-3.5 text-[12.5px] transition-colors ${
+        ativo ? 'border-ciano text-pleno' : 'border-transparent text-fraco hover:text-corpo'
       }`}
     >
       {children}
