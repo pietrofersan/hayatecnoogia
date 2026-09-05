@@ -76,7 +76,7 @@ export function AcoesConversa({
         {minha ? 'Devolver para a fila' : 'Assumir'}
       </Botao>
 
-      {erro && <p className="w-full text-xs text-critico">! {erro}</p>}
+      {erro && <p className="w-full text-xs text-magenta">! {erro}</p>}
     </div>
   )
 }

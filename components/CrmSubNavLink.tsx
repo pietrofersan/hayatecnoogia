@@ -19,8 +19,8 @@ export function CrmSubNavLink({
       href={href}
       className={`rounded-md px-3 py-1.5 text-sm transition-colors ${
         ativo
-          ? 'bg-linha text-marfim'
-          : 'text-nevoa hover:text-ink-2'
+          ? 'bg-borda text-pleno'
+          : 'text-suave hover:text-corpo'
       }`}
     >
       {children}

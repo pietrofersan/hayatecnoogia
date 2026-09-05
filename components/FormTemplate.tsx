@@ -82,7 +82,7 @@ function Formulario({
         <AreaTexto name="corpo_html" rows={12} required className="font-mono text-xs" />
       </Campo>
 
-      {estado && !estado.ok && <p className="text-xs text-critico">! {estado.erro}</p>}
+      {estado && !estado.ok && <p className="text-xs text-magenta">! {estado.erro}</p>}
 
       <div className="flex gap-2">
         <Botao type="submit" disabled={pendente}>

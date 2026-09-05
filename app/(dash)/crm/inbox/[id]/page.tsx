@@ -79,18 +79,18 @@ export default async function ThreadConversa({
 
   return (
     <div className="space-y-4">
-      <Link href="/crm/inbox" className="text-xs text-apagado hover:text-ink-2">
+      <Link href="/crm/inbox" className="text-xs text-tenue hover:text-corpo">
         ← Conversas
       </Link>
 
       <Painel>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="text-base font-medium text-marfim">
+            <h2 className="text-corpo font-medium text-pleno">
               {conversa.contacts?.name ?? 'Sem nome'}
-              <span className="ml-2 text-xs text-apagado">#{conversa.ticket_number}</span>
+              <span className="ml-2 text-xs text-tenue">#{conversa.ticket_number}</span>
             </h2>
-            <p className="text-xs text-apagado">
+            <p className="text-xs text-tenue">
               {ROTULO_CANAL[conversa.channel_accounts?.channel ?? ''] ?? '—'}
               {' · '}
               {conversa.contacts?.phone ?? conversa.contacts?.external_id ?? '—'}
@@ -124,7 +124,7 @@ export default async function ThreadConversa({
               return (
                 <li key={m.id}>
                   {novoDia && (
-                    <p className="my-4 text-center text-[11px] tracking-wide text-apagado uppercase">
+                    <p className="my-4 text-center text-[11px] tracking-wide text-tenue uppercase">
                       {dia}
                     </p>
                   )}
@@ -132,8 +132,8 @@ export default async function ThreadConversa({
                     <div
                       className={`max-w-[75%] rounded-xl px-3 py-2 text-sm ${
                         minha
-                          ? 'bg-tec/15 text-marfim'
-                          : 'border border-linha bg-noite text-ink-2'
+                          ? 'bg-azul/15 text-pleno'
+                          : 'border border-borda bg-abismo text-corpo'
                       }`}
                     >
                       {m.body ? (
@@ -141,16 +141,16 @@ export default async function ThreadConversa({
                       ) : m.media_url ? (
                         <a
                           href={m.media_url}
-                          className="text-tec underline"
+                          className="text-azul underline"
                           target="_blank"
                           rel="noreferrer"
                         >
                           Mídia
                         </a>
                       ) : (
-                        <p className="text-apagado">—</p>
+                        <p className="text-tenue">—</p>
                       )}
-                      <p className="mt-1 text-[10px] text-apagado">
+                      <p className="mt-1 text-[10px] text-tenue">
                         {horaDe(m.created_at)}
                         {minha && ` · ${ROTULO_STATUS_MENSAGEM[m.status]}`}
                       </p>

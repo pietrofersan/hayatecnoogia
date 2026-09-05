@@ -38,17 +38,17 @@ export default async function SegmentoDetalhe({
   return (
     <div className="space-y-6">
       <header>
-        <Link href="/segmentos" className="text-xs text-apagado hover:text-ink-2">
+        <Link href="/segmentos" className="text-xs text-tenue hover:text-corpo">
           ← Segmentos
         </Link>
         <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-xl font-semibold text-marfim">{s.nome}</h1>
-            <p className="text-sm text-apagado">
+            <h1 className="text-xl font-semibold text-pleno">{s.nome}</h1>
+            <p className="text-sm text-tenue">
               {s.clientes ? (
                 <>
                   Ligado a{' '}
-                  <Link href={`/clientes/${s.clientes.id}`} className="text-tec hover:underline">
+                  <Link href={`/clientes/${s.clientes.id}`} className="text-azul hover:underline">
                     {s.clientes.nome}
                   </Link>
                 </>
@@ -76,7 +76,7 @@ export default async function SegmentoDetalhe({
         {listaPalavras.length === 0 ? (
           <Vazio>
             Nenhuma palavra ainda. Clique em &ldquo;Expandir com IA&rdquo; para gerar as
-            primeiras — precisa de <code className="text-nevoa">GEMINI_API_KEY</code>{' '}
+            primeiras — precisa de <code className="text-suave">GEMINI_API_KEY</code>{' '}
             configurada.
           </Vazio>
         ) : (
@@ -88,7 +88,7 @@ export default async function SegmentoDetalhe({
         )}
       </Painel>
 
-      <p className="text-[11px] text-apagado">
+      <p className="text-[11px] text-tenue">
         Tendência e volume aguardam a aprovação do Keyword Planner e do Google Trends
         (compilado geral, Parte 3.2 e 3.5) — a checagem de domínio já é real, via RDAP.
       </p>

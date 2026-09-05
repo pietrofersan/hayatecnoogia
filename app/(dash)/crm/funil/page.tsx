@@ -47,28 +47,28 @@ export default async function FunilPage() {
         return (
           <div
             key={estagio.id}
-            className="flex w-72 shrink-0 flex-col rounded-xl border border-linha bg-painel"
+            className="flex w-72 shrink-0 flex-col rounded-xl border border-borda bg-vidro"
           >
-            <div className="flex items-center gap-2 border-b border-linha px-3 py-2.5">
+            <div className="flex items-center gap-2 border-b border-borda px-3 py-2.5">
               <span
                 className="size-2 rounded-full"
                 style={{ backgroundColor: estagio.color }}
                 aria-hidden
               />
-              <span className="text-sm font-medium text-marfim">{estagio.name}</span>
-              <span className="ml-auto text-xs text-apagado">{cartoes.length}</span>
+              <span className="text-sm font-medium text-pleno">{estagio.name}</span>
+              <span className="ml-auto text-xs text-tenue">{cartoes.length}</span>
             </div>
             <div className="flex min-h-24 flex-col gap-2 p-2">
               {cartoes.length === 0 ? (
-                <p className="px-2 py-4 text-center text-xs text-apagado">Vazio</p>
+                <p className="px-2 py-4 text-center text-xs text-tenue">Vazio</p>
               ) : (
                 cartoes.map((c) => (
                   <div
                     key={c.id}
-                    className="rounded-lg border border-linha bg-noite px-3 py-2.5"
+                    className="rounded-lg border border-borda bg-abismo px-3 py-2.5"
                   >
-                    <p className="text-sm text-marfim">{c.contacts?.name ?? 'Sem nome'}</p>
-                    <p className="mt-0.5 text-xs text-apagado">
+                    <p className="text-sm text-pleno">{c.contacts?.name ?? 'Sem nome'}</p>
+                    <p className="mt-0.5 text-xs text-tenue">
                       #{c.ticket_number}
                       {c.last_message_at &&
                         ` · ${new Date(c.last_message_at).toLocaleDateString('pt-BR')}`}

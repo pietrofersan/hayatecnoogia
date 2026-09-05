@@ -18,8 +18,8 @@ export default async function Dashboard() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-xl font-semibold text-marfim">Dashboard</h1>
-        <p className="text-sm text-apagado">Operação da agência em tempo real.</p>
+        <h1 className="text-xl font-semibold text-pleno">Dashboard</h1>
+        <p className="text-sm text-tenue">Operação da agência em tempo real.</p>
       </header>
 
       {/* KPIs grandes */}
@@ -110,7 +110,7 @@ export default async function Dashboard() {
                 <Linha key={c.id}>
                   <Celula>{c.contratos?.clientes?.nome ?? '—'}</Celula>
                   <Celula>
-                    <span className="font-mono text-xs text-nevoa">
+                    <span className="font-mono text-xs text-suave">
                       {c.contratos?.codigo ?? '—'}
                     </span>
                   </Celula>
@@ -132,18 +132,18 @@ export default async function Dashboard() {
           {r.leadsRecentes.length === 0 ? (
             <Vazio>Nenhum lead ainda. Instale o snippet nos sites (Config).</Vazio>
           ) : (
-            <ul className="divide-y divide-linha/60">
+            <ul className="divide-y divide-borda/60">
               {r.leadsRecentes.map((l) => (
                 <li key={l.id} className="flex items-baseline gap-3 py-2.5">
                   <span
                     className={`mt-1.5 size-1.5 shrink-0 rounded-full ${
-                      l.lido ? 'bg-apagado' : 'bg-dig'
+                      l.lido ? 'bg-tenue' : 'bg-magenta'
                     }`}
                     aria-hidden
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm text-marfim">{l.nome ?? 'Sem nome'}</p>
-                    <p className="truncate text-xs text-apagado">
+                    <p className="truncate text-sm text-pleno">{l.nome ?? 'Sem nome'}</p>
+                    <p className="truncate text-xs text-tenue">
                       {l.site ?? '—'} · {formatData(l.criado_em)}
                     </p>
                   </div>
@@ -156,16 +156,16 @@ export default async function Dashboard() {
         {/* Monitor de sites — placeholder F1 */}
         <Painel
           titulo="Monitor de sites"
-          acao={<span className="text-[10px] tracking-wide text-apagado uppercase">F2</span>}
+          acao={<span className="text-[10px] tracking-wide text-tenue uppercase">F2</span>}
         >
           {r.sites.length === 0 ? (
             <Vazio>Cadastre os domínios dos clientes para acompanhar SSL e uptime.</Vazio>
           ) : (
-            <ul className="divide-y divide-linha/60">
+            <ul className="divide-y divide-borda/60">
               {r.sites.map((s) => (
                 <li key={s.id} className="flex items-center justify-between py-2.5">
-                  <span className="truncate text-sm text-ink-2">{s.dominio}</span>
-                  <span className="text-xs text-apagado">
+                  <span className="truncate text-sm text-corpo">{s.dominio}</span>
+                  <span className="text-xs text-tenue">
                     {s.checado_em
                       ? s.uptime_ok
                         ? '✓ no ar'
@@ -182,22 +182,22 @@ export default async function Dashboard() {
       {/* Strip do cockpit — skeleton F1 */}
       <Painel
         titulo="Cockpit dos produtos"
-        acao={<span className="text-[10px] tracking-wide text-apagado uppercase">F2</span>}
+        acao={<span className="text-[10px] tracking-wide text-tenue uppercase">F2</span>}
       >
         <div className="grid gap-3 sm:grid-cols-4">
           {['Sites', 'Tráfego', 'Sistemas', 'Sinalização'].map((nome) => (
             <div
               key={nome}
-              className="rounded-lg border border-dashed border-linha px-4 py-6 text-center"
+              className="rounded-lg border border-dashed border-borda px-4 py-6 text-center"
             >
-              <p className="text-xs text-nevoa">{nome}</p>
-              <div className="mx-auto mt-3 h-2 w-2/3 rounded-full bg-linha" />
+              <p className="text-xs text-suave">{nome}</p>
+              <div className="mx-auto mt-3 h-2 w-2/3 rounded-full bg-borda" />
             </div>
           ))}
         </div>
       </Painel>
 
-      <p className="flex flex-wrap items-center gap-2 text-[11px] text-apagado">
+      <p className="flex flex-wrap items-center gap-2 text-[11px] text-tenue">
         Frentes:
         <FrenteTag frente="digital" />
         <FrenteTag frente="tecnologia" />

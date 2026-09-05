@@ -44,17 +44,17 @@ export default async function FichaCliente({
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <Link href="/clientes" className="text-xs text-apagado hover:text-ink-2">
+          <Link href="/clientes" className="text-xs text-tenue hover:text-corpo">
             ← Clientes
           </Link>
-          <h1 className="mt-2 text-xl font-semibold text-marfim">{c.nome}</h1>
-          <p className="text-sm text-apagado">
+          <h1 className="mt-2 text-xl font-semibold text-pleno">{c.nome}</h1>
+          <p className="text-sm text-tenue">
             {formataDocumento(c.documento)} · {c.email ?? '—'} · {c.whatsapp ?? c.telefone ?? '—'}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {c.asaas_customer_id ? (
-            <span className="text-xs text-ok">✓ espelhado no Asaas</span>
+            <span className="text-xs text-verde">✓ espelhado no Asaas</span>
           ) : (
             <EspelharAsaas clienteId={c.id} />
           )}
@@ -70,7 +70,7 @@ export default async function FichaCliente({
             {(contratos as Contrato[]).map((ct) => (
               <Linha key={ct.id}>
                 <Celula>
-                  <Link href={`/contratos?c=${ct.id}`} className="font-mono text-xs text-tec">
+                  <Link href={`/contratos?c=${ct.id}`} className="font-mono text-xs text-azul">
                     {ct.codigo}
                   </Link>
                 </Celula>
@@ -98,7 +98,7 @@ export default async function FichaCliente({
               <Linha key={cb.id}>
                 <Celula>{formatData(cb.vencimento)}</Celula>
                 <Celula>
-                  <span className="font-mono text-xs text-nevoa">{cb.contratos?.codigo}</span>
+                  <span className="font-mono text-xs text-suave">{cb.contratos?.codigo}</span>
                 </Celula>
                 <Celula>{cb.forma ?? '—'}</Celula>
                 <Celula>
@@ -111,7 +111,7 @@ export default async function FichaCliente({
                       href={cb.url_fatura}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-xs text-tec hover:underline"
+                      className="text-xs text-azul hover:underline"
                     >
                       2ª via
                     </a>
@@ -128,11 +128,11 @@ export default async function FichaCliente({
           {(leads ?? []).length === 0 ? (
             <Vazio>Sem leads deste cliente.</Vazio>
           ) : (
-            <ul className="divide-y divide-linha/60">
+            <ul className="divide-y divide-borda/60">
               {(leads as Lead[]).map((l) => (
                 <li key={l.id} className="py-2.5">
-                  <p className="text-sm text-marfim">{l.nome ?? 'Sem nome'}</p>
-                  <p className="text-xs text-apagado">
+                  <p className="text-sm text-pleno">{l.nome ?? 'Sem nome'}</p>
+                  <p className="text-xs text-tenue">
                     {l.email ?? l.telefone ?? '—'} · {formatData(l.criado_em)}
                   </p>
                 </li>
@@ -145,11 +145,11 @@ export default async function FichaCliente({
           {(sites ?? []).length === 0 ? (
             <Vazio>Nenhum domínio cadastrado.</Vazio>
           ) : (
-            <ul className="divide-y divide-linha/60">
+            <ul className="divide-y divide-borda/60">
               {(sites as Site[]).map((s) => (
                 <li key={s.id} className="flex items-center justify-between py-2.5">
-                  <span className="text-sm text-ink-2">{s.dominio}</span>
-                  <span className="text-xs text-apagado">{s.host ?? '—'}</span>
+                  <span className="text-sm text-corpo">{s.dominio}</span>
+                  <span className="text-xs text-tenue">{s.host ?? '—'}</span>
                 </li>
               ))}
             </ul>
@@ -159,7 +159,7 @@ export default async function FichaCliente({
 
       {c.observacoes && (
         <Painel titulo="Observações">
-          <p className="text-sm whitespace-pre-wrap text-ink-2">{c.observacoes}</p>
+          <p className="text-sm whitespace-pre-wrap text-corpo">{c.observacoes}</p>
         </Painel>
       )}
     </div>

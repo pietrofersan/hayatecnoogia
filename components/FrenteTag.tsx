@@ -2,17 +2,17 @@ import { ROTULO_FRENTE, type Frente } from '@/lib/db'
 
 /** Categóricas validadas, ordem fixa dig → tec → vis (comunicação usa névoa). */
 export const CORES_FRENTE: Record<Frente, string> = {
-  digital: 'var(--color-dig)',
-  tecnologia: 'var(--color-tec)',
-  visual: 'var(--color-vis)',
-  comunicacao: 'var(--color-com)',
+  digital: 'var(--color-magenta)',
+  tecnologia: 'var(--color-azul)',
+  visual: 'var(--color-verde)',
+  comunicacao: 'var(--color-fantasma)',
 }
 
 const CLASSES: Record<Frente, string> = {
-  digital: 'text-dig bg-dig/10 border-dig/25',
-  tecnologia: 'text-tec bg-tec/10 border-tec/25',
-  visual: 'text-vis bg-vis/10 border-vis/25',
-  comunicacao: 'text-nevoa bg-nevoa/10 border-nevoa/25',
+  digital: 'text-magenta bg-magenta/10 border-magenta/25',
+  tecnologia: 'text-azul bg-azul/10 border-azul/25',
+  visual: 'text-verde bg-verde/10 border-verde/25',
+  comunicacao: 'text-suave bg-suave/10 border-suave/25',
 }
 
 export function FrenteTag({ frente }: { frente: Frente }) {

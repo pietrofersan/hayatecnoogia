@@ -874,3 +874,305 @@ export async function checarRadarAgora(dominioId?: string): Promise<Resultado> {
   revalidatePath('/dominios')
   return { ok: true }
 }
+
+// Central de alertas ------------------------------------------------
+
+/**
+ * Baixa um alerta. O problema de origem continua no banco: o que gravamos
+ * é só a chave determinística, para o item sumir da central e do dashboard.
+ */
+export async function resolverAlerta(chave: string): Promise<Resultado> {
+  const supabase = await supabaseServidor()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const { error } = await supabase
+    .from('alertas_resolvidos')
+    .upsert({ chave, resolvido_por: user?.id ?? null }, { onConflict: 'chave' })
+
+  if (error) return { ok: false, erro: error.message }
+
+  revalidatePath('/alertas')
+  revalidatePath('/dashboard')
+  return { ok: true }
+}
+
+/** Reabre um alerta baixado por engano. */
+export async function reabrirAlerta(chave: string): Promise<Resultado> {
+  const supabase = await supabaseServidor()
+  const { error } = await supabase.from('alertas_resolvidos').delete().eq('chave', chave)
+  if (error) return { ok: false, erro: error.message }
+
+  revalidatePath('/alertas')
+  revalidatePath('/dashboard')
+  return { ok: true }
+}
+
+/** Baixa em lote — botão "Resolver todos" do topo da central. */
+export async function resolverAlertas(chaves: string[]): Promise<Resultado> {
+  if (chaves.length === 0) return { ok: true }
+
+  const supabase = await supabaseServidor()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const { error } = await supabase
+    .from('alertas_resolvidos')
+    .upsert(
+      chaves.map((chave) => ({ chave, resolvido_por: user?.id ?? null })),
+      { onConflict: 'chave' },
+    )
+
+  if (error) return { ok: false, erro: error.message }
+
+  revalidatePath('/alertas')
+  revalidatePath('/dashboard')
+  return { ok: true }
+}
+
+// Usuários e permissões ---------------------------------------------
+
+const PAPEIS = ['admin', 'operador'] as const
+
+/**
+ * Muda o perfil de alguém da equipe. A RLS já barra quem não é admin
+ * (usuarios_master_admin_atualiza) — a checagem aqui é só para devolver
+ * uma mensagem em vez de um erro cru do Postgres.
+ */
+export async function mudarPapel(id: string, papel: string): Promise<Resultado> {
+  if (!PAPEIS.includes(papel as (typeof PAPEIS)[number])) {
+    return { ok: false, erro: 'Perfil inválido.' }
+  }
+
+  const supabase = await supabaseServidor()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (user?.id === id) {
+    return { ok: false, erro: 'Você não pode mudar o próprio perfil.' }
+  }
+
+  const { error } = await supabase.from('usuarios_master').update({ papel }).eq('id', id)
+  if (error) return { ok: false, erro: error.message }
+
+  revalidatePath('/usuarios')
+  return { ok: true }
+}
+
+/** Tira alguém da equipe do Master. A conta no auth continua existindo. */
+export async function removerDaEquipe(id: string): Promise<Resultado> {
+  const supabase = await supabaseServidor()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (user?.id === id) {
+    return { ok: false, erro: 'Você não pode remover o próprio acesso.' }
+  }
+
+  const { error } = await supabase.from('usuarios_master').delete().eq('id', id)
+  if (error) return { ok: false, erro: error.message }
+
+  revalidatePath('/usuarios')
+  return { ok: true }
+}
+
+// Relatório mensal --------------------------------------------------
+
+/**
+ * Enfileira o resumo do mês como mensagem de saída na conversa de WhatsApp
+ * do cliente. O envio em si é do adaptador (services/whatsapp-adapter), que
+ * consome `messages` com status `pending` — o mesmo caminho da resposta
+ * manual no inbox.
+ */
+export async function enviarRelatorioPorWhatsApp(
+  clienteId: string,
+  resumo: string,
+): Promise<Resultado> {
+  const supabase = await supabaseServidor()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const { data: cliente } = await supabase
+    .from('clientes')
+    .select('whatsapp, telefone')
+    .eq('id', clienteId)
+    .maybeSingle()
+
+  const numero = somenteDigitos(cliente?.whatsapp || cliente?.telefone || '')
+  if (!numero) {
+    return { ok: false, erro: 'O cliente não tem WhatsApp nem telefone cadastrado.' }
+  }
+
+  const { data: contato } = await supabase
+    .from('contacts')
+    .select('id')
+    .eq('phone', numero)
+    .limit(1)
+    .maybeSingle()
+
+  if (!contato) {
+    return {
+      ok: false,
+      erro: 'Nenhum contato de WhatsApp com esse número no CRM. Abra uma conversa primeiro.',
+    }
+  }
+
+  const { data: conversa } = await supabase
+    .from('conversations')
+    .select('id, workspace_id')
+    .eq('contact_id', contato.id)
+    .order('last_message_at', { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (!conversa) {
+    return { ok: false, erro: 'O contato existe, mas não há conversa aberta com ele.' }
+  }
+
+  const { error } = await supabase.from('messages').insert({
+    conversation_id: conversa.id,
+    workspace_id: conversa.workspace_id,
+    direction: 'outbound',
+    sender_type: 'agent',
+    sender_id: user?.id ?? null,
+    body: resumo,
+    status: 'pending',
+  })
+
+  if (error) return { ok: false, erro: error.message }
+
+  revalidatePath(`/crm/inbox/${conversa.id}`)
+  return { ok: true }
+}
+
+// Onboarding de cliente ---------------------------------------------
+
+const esquemaOnboarding = z.object({
+  nome: z.string().min(2, 'Informe o nome ou razão social.'),
+  nome_fantasia: z.string().optional(),
+  documento: z.string().optional(),
+  email: z.string().email('E-mail inválido.').optional().or(z.literal('')),
+  telefone: z.string().optional(),
+  whatsapp: z.string().optional(),
+  segmento: z.string().optional(),
+  palavras: z.string().optional(),
+  frente: z.enum(['digital', 'tecnologia', 'visual', 'comunicacao']),
+  tipo: z.string().min(1, 'Escolha o tipo de contrato.'),
+  modo: z.enum(['recorrente', 'parcelado', 'avulso']),
+  valor: z.string().optional(),
+  dia_vencimento: z.string().optional(),
+  dominio: z.string().optional(),
+})
+
+/**
+ * Wizard de 5 passos (README §13). Cria o cliente e, quando os campos
+ * opcionais vierem preenchidos, o segmento com as palavras, o contrato em
+ * rascunho e o domínio no radar. Cada etapa extra falha em silêncio no
+ * agregado: o cliente já está criado e o resto é editável na ficha — o
+ * onboarding nunca deve travar por causa de um acessório.
+ */
+export async function ativarCliente(
+  _estado: unknown,
+  formData: FormData,
+): Promise<Resultado> {
+  const analise = esquemaOnboarding.safeParse({
+    nome: texto(formData, 'nome'),
+    nome_fantasia: texto(formData, 'nome_fantasia'),
+    documento: texto(formData, 'documento'),
+    email: texto(formData, 'email'),
+    telefone: texto(formData, 'telefone'),
+    whatsapp: texto(formData, 'whatsapp'),
+    segmento: texto(formData, 'segmento'),
+    palavras: texto(formData, 'palavras'),
+    frente: texto(formData, 'frente') || 'digital',
+    tipo: texto(formData, 'tipo'),
+    modo: texto(formData, 'modo') || 'recorrente',
+    valor: texto(formData, 'valor'),
+    dia_vencimento: texto(formData, 'dia_vencimento'),
+    dominio: texto(formData, 'dominio'),
+  })
+
+  if (!analise.success) {
+    return { ok: false, erro: analise.error.issues[0].message }
+  }
+
+  const d = analise.data
+  const documento = d.documento ? somenteDigitos(d.documento) : ''
+  if (documento && !validaDocumento(documento)) {
+    return { ok: false, erro: 'CPF/CNPJ inválido.' }
+  }
+
+  const supabase = await supabaseServidor()
+
+  const { data: cliente, error: erroCliente } = await supabase
+    .from('clientes')
+    .insert({
+      nome: d.nome,
+      nome_fantasia: d.nome_fantasia || null,
+      documento: documento || null,
+      email: d.email || null,
+      telefone: d.telefone || null,
+      whatsapp: d.whatsapp || null,
+    })
+    .select('id')
+    .single()
+
+  if (erroCliente || !cliente) {
+    return { ok: false, erro: erroCliente?.message ?? 'Não foi possível criar o cliente.' }
+  }
+
+  // Segmento e palavras-chave (passo 2).
+  if (d.segmento) {
+    const { data: segmento } = await supabase
+      .from('segmentos')
+      .insert({ nome: d.segmento, cliente_id: cliente.id })
+      .select('id')
+      .single()
+
+    const termos = (d.palavras ?? '')
+      .split(/[,\n]/)
+      .map((t) => t.trim())
+      .filter(Boolean)
+
+    if (segmento && termos.length > 0) {
+      await supabase
+        .from('palavras_chave')
+        .insert(termos.map((termo) => ({ segmento_id: segmento.id, termo })))
+    }
+  }
+
+  // Contrato em rascunho (passo 3) — nunca ativado direto: assinatura e
+  // cobrança continuam sendo decisões explícitas na tela de contratos.
+  const centavos = d.valor ? parseParaCentavos(d.valor) : 0
+  if (centavos > 0) {
+    await supabase.from('contratos').insert({
+      cliente_id: cliente.id,
+      frente: d.frente,
+      tipo: d.tipo,
+      modo: d.modo,
+      valor_centavos: centavos,
+      dia_vencimento: d.dia_vencimento ? Number(d.dia_vencimento) : null,
+      status: 'rascunho',
+    })
+  }
+
+  // Domínio no radar (passo 4).
+  const dominio = d.dominio?.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '')
+  if (dominio) {
+    await supabase.from('dominios_radar').insert({
+      dominio,
+      cliente_id: cliente.id,
+      motivo: 'cadastrado no onboarding',
+      estado: 'indeterminado',
+    })
+  }
+
+  revalidatePath('/clientes')
+  revalidatePath('/dashboard')
+  return { ok: true, id: cliente.id }
+}

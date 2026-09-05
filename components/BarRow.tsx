@@ -23,9 +23,9 @@ export function BarRow({
 
   return (
     <div className="group grid grid-cols-[7.5rem_1fr_auto] items-center gap-3 py-1.5">
-      <span className="truncate text-xs text-ink-2">{rotulo}</span>
+      <span className="truncate text-xs text-corpo">{rotulo}</span>
       <span
-        className="h-2 rounded-r-[4px] bg-linha/60"
+        className="h-2 rounded-r-[4px] bg-borda/60"
         title={dica ?? `${rotulo}: ${valorFormatado}`}
       >
         <span
@@ -33,7 +33,7 @@ export function BarRow({
           style={{ width: `${largura}%`, background: cor }}
         />
       </span>
-      <span className="tabular text-xs text-ink-2">{valorFormatado}</span>
+      <span className="tabular text-xs text-corpo">{valorFormatado}</span>
     </div>
   )
 }
@@ -90,12 +90,12 @@ export function ColunasMensais({
           {/* O trilho precisa de altura definida para a barra em % resolver. */}
           <div className="flex w-full flex-1 items-end justify-center">
             <div
-              className="w-full max-w-10 rounded-t-[4px] bg-tec transition-[height] duration-500"
+              className="w-full max-w-10 rounded-t-[4px] bg-azul transition-[height] duration-500"
               style={{ height: `${Math.max((d.valor / maximo) * 100, 2)}%` }}
               title={`${d.rotulo}: ${formatar(d.valor)}`}
             />
           </div>
-          <span className="text-[10px] tracking-wide text-apagado uppercase">
+          <span className="text-[10px] tracking-wide text-tenue uppercase">
             {d.rotulo}
           </span>
         </div>

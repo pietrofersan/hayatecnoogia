@@ -30,7 +30,7 @@ export function FormDominio({ clientes }: { clientes: Pick<Cliente, 'id' | 'nome
   }
 
   return (
-    <form action={acao} className="w-full space-y-3 rounded-lg border border-linha p-4">
+    <form action={acao} className="w-full space-y-3 rounded-lg border border-borda p-4">
       <div className="grid gap-3 sm:grid-cols-3">
         <Campo rotulo="Domínio" dica="com extensão: haya.com.br">
           <Entrada name="dominio" placeholder="exemplo.com.br" required autoFocus />
@@ -50,7 +50,7 @@ export function FormDominio({ clientes }: { clientes: Pick<Cliente, 'id' | 'nome
         </Campo>
       </div>
 
-      {estado && !estado.ok && <p className="text-xs text-critico">! {estado.erro}</p>}
+      {estado && !estado.ok && <p className="text-xs text-magenta">! {estado.erro}</p>}
 
       <div className="flex gap-2">
         <Botao type="submit" disabled={pendente}>

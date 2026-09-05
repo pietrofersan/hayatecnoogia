@@ -88,7 +88,7 @@ function Passos({
           <li
             key={p}
             className={`rounded-md px-2 py-1 ${
-              i === passo ? 'bg-tec text-noite' : i < passo ? 'text-vis' : 'text-apagado'
+              i === passo ? 'bg-azul text-abismo' : i < passo ? 'text-verde' : 'text-tenue'
             }`}
           >
             {i + 1}. {p}
@@ -124,11 +124,11 @@ function Passos({
           <div className="space-y-3">
             {criadoId ? (
               <>
-                <p className="text-sm text-ink-2">
+                <p className="text-sm text-corpo">
                   ✓ Contrato criado em rascunho. Envie para assinatura na ZapSign — a
                   cobrança no Asaas nasce quando o cliente assinar.
                 </p>
-                {erroEnvio && <p className="text-xs text-critico">! {erroEnvio}</p>}
+                {erroEnvio && <p className="text-xs text-magenta">! {erroEnvio}</p>}
                 <div className="flex flex-wrap gap-2">
                   <Botao
                     type="button"
@@ -149,12 +149,12 @@ function Passos({
                 </div>
               </>
             ) : (
-              <p className="text-sm text-apagado">Salvando…</p>
+              <p className="text-sm text-tenue">Salvando…</p>
             )}
           </div>
         )}
 
-        {estado && !estado.ok && <p className="mt-4 text-xs text-critico">! {estado.erro}</p>}
+        {estado && !estado.ok && <p className="mt-4 text-xs text-magenta">! {estado.erro}</p>}
 
         {passo < 3 && (
           <div className="mt-5 flex gap-2">

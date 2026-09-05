@@ -40,8 +40,8 @@ export default async function Config() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-xl font-semibold text-marfim">Configurações</h1>
-        <p className="text-sm text-apagado">Templates, integrações, usuários e sites.</p>
+        <h1 className="text-xl font-semibold text-pleno">Configurações</h1>
+        <p className="text-sm text-tenue">Templates, integrações, usuários e sites.</p>
       </header>
 
       <Painel titulo="Templates de contrato" acao={<FormTemplate />}>
@@ -72,20 +72,20 @@ export default async function Config() {
               <Linha key={i.variavel}>
                 <Celula>{i.nome}</Celula>
                 <Celula>
-                  <span className="font-mono text-xs text-nevoa">{i.variavel}</span>
+                  <span className="font-mono text-xs text-suave">{i.variavel}</span>
                 </Celula>
                 <Celula>
                   {configurada ? (
-                    <span className="text-ok">✓ configurada</span>
+                    <span className="text-verde">✓ configurada</span>
                   ) : (
-                    <span className="text-alerta">! ausente</span>
+                    <span className="text-ambar">! ausente</span>
                   )}
                 </Celula>
               </Linha>
             )
           })}
         </Tabela>
-        <p className="mt-4 text-[11px] text-apagado">
+        <p className="mt-4 text-[11px] text-tenue">
           As chaves ficam apenas nas variáveis de ambiente da Vercel — o Master mostra só se
           estão presentes, nunca o valor.
         </p>
@@ -121,9 +121,9 @@ export default async function Config() {
             {(sites as Site[]).map((s) => (
               <div key={s.id}>
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm text-marfim">
+                  <p className="text-sm text-pleno">
                     {s.dominio}
-                    <span className="ml-2 font-mono text-[11px] text-apagado">
+                    <span className="ml-2 font-mono text-[11px] text-tenue">
                       {s.site_key}
                     </span>
                   </p>

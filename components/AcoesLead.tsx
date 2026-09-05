@@ -12,14 +12,14 @@ export function AcoesLead({ lead }: { lead: Lead }) {
       <button
         disabled={pendente}
         onClick={() => iniciar(() => marcarLead(lead.id, 'lido', !lead.lido))}
-        className="text-nevoa hover:text-marfim disabled:opacity-50"
+        className="text-suave hover:text-pleno disabled:opacity-50"
       >
         {lead.lido ? 'Marcar não lido' : 'Marcar lido'}
       </button>
       <button
         disabled={pendente}
         onClick={() => iniciar(() => marcarLead(lead.id, 'respondido', !lead.respondido))}
-        className="text-nevoa hover:text-marfim disabled:opacity-50"
+        className="text-suave hover:text-pleno disabled:opacity-50"
       >
         {lead.respondido ? 'Reabrir' : 'Marcar respondido'}
       </button>

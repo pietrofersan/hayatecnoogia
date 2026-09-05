@@ -80,8 +80,8 @@ export default async function Contratos({
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-marfim">Contratos</h1>
-          <p className="text-sm text-apagado">{contratos.length} no filtro atual</p>
+          <h1 className="text-xl font-semibold text-pleno">Contratos</h1>
+          <p className="text-sm text-tenue">{contratos.length} no filtro atual</p>
         </div>
         <WizardContrato clientes={listaClientes} templates={listaTemplates} />
       </header>
@@ -112,7 +112,7 @@ export default async function Contratos({
             key={campo.nome}
             name={campo.nome}
             defaultValue={(f as Record<string, string | undefined>)[campo.nome] ?? ''}
-            className="rounded-lg border border-linha bg-painel px-3 py-2 text-sm text-ink-2 outline-none focus:border-tec"
+            className="rounded-lg border border-borda bg-vidro px-3 py-2 text-sm text-corpo outline-none focus:border-azul"
           >
             <option value="">{campo.vazio}</option>
             {campo.opcoes.map(([valor, rotulo]) => (
@@ -122,12 +122,12 @@ export default async function Contratos({
             ))}
           </select>
         ))}
-        <button className="rounded-lg border border-linha px-3 py-2 text-sm text-ink-2 hover:border-nevoa hover:text-marfim">
+        <button className="rounded-lg border border-borda px-3 py-2 text-sm text-corpo hover:border-suave hover:text-pleno">
           Filtrar
         </button>
         <Link
           href="/contratos"
-          className="rounded-lg px-3 py-2 text-sm text-apagado hover:text-ink-2"
+          className="rounded-lg px-3 py-2 text-sm text-tenue hover:text-corpo"
         >
           Limpar
         </Link>
@@ -137,7 +137,7 @@ export default async function Contratos({
         <Painel
           titulo={`${selecionado.codigo} · ${selecionado.clientes?.nome ?? ''}`}
           acao={
-            <Link href={querystring({ c: undefined })} className="text-xs text-apagado hover:text-ink-2">
+            <Link href={querystring({ c: undefined })} className="text-xs text-tenue hover:text-corpo">
               fechar ×
             </Link>
           }
@@ -159,14 +159,14 @@ export default async function Contratos({
               ['ZapSign', selecionado.zapsign_status ?? '—'],
             ].map(([rotulo, valor]) => (
               <div key={rotulo}>
-                <dt className="text-[11px] tracking-wide text-nevoa uppercase">{rotulo}</dt>
-                <dd className="mt-0.5 text-ink-2">{valor}</dd>
+                <dt className="text-[11px] tracking-wide text-suave uppercase">{rotulo}</dt>
+                <dd className="mt-0.5 text-corpo">{valor}</dd>
               </div>
             ))}
           </dl>
 
           {selecionado.descricao && (
-            <p className="mt-4 text-sm whitespace-pre-wrap text-ink-2">{selecionado.descricao}</p>
+            <p className="mt-4 text-sm whitespace-pre-wrap text-corpo">{selecionado.descricao}</p>
           )}
 
           <div className="mt-5 flex flex-wrap items-start gap-2">
@@ -182,7 +182,7 @@ export default async function Contratos({
 
           {cobrancasDoSelecionado.length > 0 && (
             <div className="mt-6">
-              <p className="mb-2 text-[11px] tracking-wide text-nevoa uppercase">
+              <p className="mb-2 text-[11px] tracking-wide text-suave uppercase">
                 Cobranças do contrato
               </p>
               <Tabela cabecalho={['Vencimento', 'Parcela', 'Status', 'Valor']}>
@@ -217,7 +217,7 @@ export default async function Contratos({
                   <Link
                     href={querystring({ c: ct.id })}
                     scroll={false}
-                    className="font-mono text-xs text-tec hover:underline"
+                    className="font-mono text-xs text-azul hover:underline"
                   >
                     {ct.codigo}
                   </Link>

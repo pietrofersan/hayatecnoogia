@@ -103,7 +103,7 @@ function FormularioCliente({
         </div>
       </div>
 
-      {estado && !estado.ok && <p className="mt-4 text-xs text-critico">! {estado.erro}</p>}
+      {estado && !estado.ok && <p className="mt-4 text-xs text-magenta">! {estado.erro}</p>}
 
       <div className="mt-5 flex gap-2">
         <Botao type="submit" disabled={pendente}>

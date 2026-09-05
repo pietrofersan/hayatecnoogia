@@ -30,7 +30,7 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-noite/80 p-4 backdrop-blur-sm sm:p-8"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-abismo/80 p-4 backdrop-blur-sm sm:p-8"
       onClick={(e) => {
         if (e.target === e.currentTarget) aoFechar()
       }}
@@ -38,14 +38,14 @@ export function Modal({
       aria-modal
       aria-label={titulo}
     >
-      <div className="my-auto w-full max-w-3xl rounded-xl border border-linha bg-painel">
-        <header className="flex items-center justify-between border-b border-linha px-5 py-4">
-          <h2 className="text-[13px] font-medium tracking-wide text-ink-2 uppercase">
+      <div className="my-auto w-full max-w-3xl rounded-xl border border-borda bg-vidro">
+        <header className="flex items-center justify-between border-b border-borda px-5 py-4">
+          <h2 className="text-[13px] font-medium tracking-wide text-corpo uppercase">
             {titulo}
           </h2>
           <button
             onClick={aoFechar}
-            className="text-sm text-apagado hover:text-marfim"
+            className="text-sm text-tenue hover:text-pleno"
             aria-label="Fechar"
           >
             ×

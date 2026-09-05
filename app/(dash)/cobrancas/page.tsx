@@ -40,8 +40,8 @@ export default async function Cobrancas({
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-xl font-semibold text-marfim">Cobranças</h1>
-        <p className="text-sm text-apagado">
+        <h1 className="text-xl font-semibold text-pleno">Cobranças</h1>
+        <p className="text-sm text-tenue">
           {cobrancas.length} no filtro · {formatBRL(total)} somados
         </p>
       </header>
@@ -50,7 +50,7 @@ export default async function Cobrancas({
         <select
           name="status"
           defaultValue={f.status ?? ''}
-          className="rounded-lg border border-linha bg-painel px-3 py-2 text-ink-2 outline-none focus:border-tec"
+          className="rounded-lg border border-borda bg-vidro px-3 py-2 text-corpo outline-none focus:border-azul"
         >
           <option value="">Todos os status</option>
           {STATUS.map((s) => (
@@ -62,7 +62,7 @@ export default async function Cobrancas({
         <select
           name="forma"
           defaultValue={f.forma ?? ''}
-          className="rounded-lg border border-linha bg-painel px-3 py-2 text-ink-2 outline-none focus:border-tec"
+          className="rounded-lg border border-borda bg-vidro px-3 py-2 text-corpo outline-none focus:border-azul"
         >
           <option value="">Todas as formas</option>
           {FORMAS.map((forma) => (
@@ -75,18 +75,18 @@ export default async function Cobrancas({
           type="date"
           name="de"
           defaultValue={f.de}
-          className="rounded-lg border border-linha bg-painel px-3 py-2 text-ink-2 outline-none focus:border-tec"
+          className="rounded-lg border border-borda bg-vidro px-3 py-2 text-corpo outline-none focus:border-azul"
         />
         <input
           type="date"
           name="ate"
           defaultValue={f.ate}
-          className="rounded-lg border border-linha bg-painel px-3 py-2 text-ink-2 outline-none focus:border-tec"
+          className="rounded-lg border border-borda bg-vidro px-3 py-2 text-corpo outline-none focus:border-azul"
         />
-        <button className="rounded-lg border border-linha px-3 py-2 text-ink-2 hover:border-nevoa hover:text-marfim">
+        <button className="rounded-lg border border-borda px-3 py-2 text-corpo hover:border-suave hover:text-pleno">
           Filtrar
         </button>
-        <Link href="/cobrancas" className="rounded-lg px-3 py-2 text-apagado hover:text-ink-2">
+        <Link href="/cobrancas" className="rounded-lg px-3 py-2 text-tenue hover:text-corpo">
           Limpar
         </Link>
       </form>
@@ -112,7 +112,7 @@ export default async function Cobrancas({
                 <Celula>{formatData(c.vencimento)}</Celula>
                 <Celula>{c.contratos?.clientes?.nome ?? '—'}</Celula>
                 <Celula>
-                  <span className="font-mono text-xs text-nevoa">
+                  <span className="font-mono text-xs text-suave">
                     {c.contratos?.codigo ?? '—'}
                   </span>
                 </Celula>
@@ -128,12 +128,12 @@ export default async function Cobrancas({
                       href={c.url_fatura}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-xs text-tec hover:underline"
+                      className="text-xs text-azul hover:underline"
                     >
                       2ª via
                     </a>
                   ) : (
-                    <span className="text-xs text-apagado">—</span>
+                    <span className="text-xs text-tenue">—</span>
                   )}
                 </Celula>
               </Linha>

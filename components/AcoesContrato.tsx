@@ -43,7 +43,7 @@ export function AcoesContrato({
           </Botao>
         )}
       </div>
-      {erro && <p className="text-xs text-critico">! {erro}</p>}
+      {erro && <p className="text-xs text-magenta">! {erro}</p>}
     </div>
   )
 }

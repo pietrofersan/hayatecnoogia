@@ -26,8 +26,8 @@ export default async function Clientes({
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-marfim">Clientes</h1>
-          <p className="text-sm text-apagado">
+          <h1 className="text-xl font-semibold text-pleno">Clientes</h1>
+          <p className="text-sm text-tenue">
             {clientes.length} cadastrado(s) · espelhados no Asaas
           </p>
         </div>
@@ -39,7 +39,7 @@ export default async function Clientes({
           name="q"
           defaultValue={q}
           placeholder="Buscar por nome…"
-          className="w-full rounded-lg border border-linha bg-painel px-3 py-2 text-sm text-marfim outline-none placeholder:text-apagado focus:border-tec"
+          className="w-full rounded-lg border border-borda bg-vidro px-3 py-2 text-sm text-pleno outline-none placeholder:text-tenue focus:border-azul"
         />
       </form>
 
@@ -53,21 +53,21 @@ export default async function Clientes({
                 <Celula>
                   <Link
                     href={`/clientes/${c.id}`}
-                    className="text-marfim hover:text-tec"
+                    className="text-pleno hover:text-azul"
                   >
                     {c.nome}
                   </Link>
                   {c.nome_fantasia && (
-                    <span className="block text-xs text-apagado">{c.nome_fantasia}</span>
+                    <span className="block text-xs text-tenue">{c.nome_fantasia}</span>
                   )}
                 </Celula>
                 <Celula>{formataDocumento(c.documento)}</Celula>
                 <Celula>{c.email ?? c.whatsapp ?? c.telefone ?? '—'}</Celula>
                 <Celula>
                   {c.asaas_customer_id ? (
-                    <span className="text-ok">✓ espelhado</span>
+                    <span className="text-verde">✓ espelhado</span>
                   ) : (
-                    <span className="text-alerta">! pendente</span>
+                    <span className="text-ambar">! pendente</span>
                   )}
                 </Celula>
                 <Celula>{formatData(c.criado_em)}</Celula>

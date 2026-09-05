@@ -30,8 +30,8 @@ export default async function Segmentos() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-marfim">Segmentos</h1>
-          <p className="text-sm text-apagado">
+          <h1 className="text-xl font-semibold text-pleno">Segmentos</h1>
+          <p className="text-sm text-tenue">
             Pesquisa de mercado por segmento ou por cliente — Módulo 1.
           </p>
         </div>
@@ -51,13 +51,13 @@ export default async function Segmentos() {
             {segmentos.map((s) => (
               <Linha key={s.id}>
                 <Celula>
-                  <Link href={`/segmentos/${s.id}`} className="text-marfim hover:text-tec">
+                  <Link href={`/segmentos/${s.id}`} className="text-pleno hover:text-azul">
                     {s.nome}
                   </Link>
                 </Celula>
                 <Celula>
                   {s.clientes?.nome ?? (
-                    <span className="text-apagado">— prospecção —</span>
+                    <span className="text-tenue">— prospecção —</span>
                   )}
                 </Celula>
                 <Celula numerica>{s.palavras_chave?.[0]?.count ?? 0}</Celula>

@@ -54,11 +54,11 @@ document.getElementById('haya-lead').addEventListener('submit', async (e) => {
           setCopiado(true)
           setTimeout(() => setCopiado(false), 2000)
         }}
-        className="mb-2 text-xs text-tec hover:underline"
+        className="mb-2 text-xs text-azul hover:underline"
       >
         {copiado ? '✓ copiado' : 'copiar snippet'}
       </button>
-      <pre className="max-h-64 overflow-auto rounded-lg border border-linha bg-noite p-3 font-mono text-[11px] text-ink-2">
+      <pre className="max-h-64 overflow-auto rounded-lg border border-borda bg-abismo p-3 font-mono text-[11px] text-corpo">
         {snippet}
       </pre>
     </div>

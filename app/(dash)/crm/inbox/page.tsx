@@ -6,9 +6,9 @@ import { supabaseServidor } from '@/lib/supabase'
 export const dynamic = 'force-dynamic'
 
 const ROTULO_STATUS: Record<string, { rotulo: string; icone: string; classe: string }> = {
-  open: { rotulo: 'Ativo', icone: '●', classe: 'text-ok' },
-  pending: { rotulo: 'Pendente', icone: '○', classe: 'text-alerta' },
-  closed: { rotulo: 'Encerrado', icone: '×', classe: 'text-apagado' },
+  open: { rotulo: 'Ativo', icone: '●', classe: 'text-verde' },
+  pending: { rotulo: 'Pendente', icone: '○', classe: 'text-ambar' },
+  closed: { rotulo: 'Encerrado', icone: '×', classe: 'text-tenue' },
 }
 
 type Conversa = {
@@ -43,7 +43,7 @@ export default async function InboxPage() {
           (WhatsApp, Instagram...) estiver conectado.
         </Vazio>
       ) : (
-        <ul className="-mx-5 divide-y divide-linha/60">
+        <ul className="-mx-5 divide-y divide-borda/60">
           {conversas.map((c) => {
             const janelaExpirada =
               c.window_expires_at && new Date(c.window_expires_at) < new Date()
@@ -52,21 +52,21 @@ export default async function InboxPage() {
               <li key={c.id}>
                 <Link
                   href={`/crm/inbox/${c.id}`}
-                  className="flex items-center gap-3 px-5 py-3 hover:bg-linha/30"
+                  className="flex items-center gap-3 px-5 py-3 hover:bg-borda/30"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="truncate text-sm font-medium text-marfim">
+                      <span className="truncate text-sm font-medium text-pleno">
                         {c.contacts?.name ?? 'Sem nome'}
                       </span>
-                      <span className="text-xs text-apagado">#{c.ticket_number}</span>
+                      <span className="text-xs text-tenue">#{c.ticket_number}</span>
                       {janelaExpirada && (
-                        <span className="rounded bg-critico/15 px-1.5 py-0.5 text-[10px] text-critico">
+                        <span className="rounded bg-magenta/15 px-1.5 py-0.5 text-[10px] text-magenta">
                           FORA DA JANELA DE 24H
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-apagado">
+                    <p className="text-xs text-tenue">
                       {ROTULO_CANAL[c.channel_accounts?.channel ?? ''] ?? '—'}
                       {c.pipeline_stages && ` · ${c.pipeline_stages.name}`}
                     </p>

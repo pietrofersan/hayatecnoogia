@@ -10,9 +10,9 @@ import { diasAte } from '@/lib/radar'
 import { Celula, Linha } from './Tabela'
 
 const COR: Record<DominioRadar['estado'], string> = {
-  livre: 'text-ok',
-  registrado: 'text-nevoa',
-  indeterminado: 'text-apagado',
+  livre: 'text-verde',
+  registrado: 'text-suave',
+  indeterminado: 'text-tenue',
 }
 
 export function LinhaRadar({
@@ -32,13 +32,13 @@ export function LinhaRadar({
   return (
     <Linha>
       <Celula>
-        <span className={dominio.ativo ? 'text-marfim' : 'text-apagado line-through'}>
+        <span className={dominio.ativo ? 'text-pleno' : 'text-tenue line-through'}>
           {dominio.dominio}
         </span>
         {dominio.motivo && (
-          <span className="block text-[11px] text-apagado">{dominio.motivo}</span>
+          <span className="block text-[11px] text-tenue">{dominio.motivo}</span>
         )}
-        {cliente && <span className="block text-[11px] text-tec">{cliente}</span>}
+        {cliente && <span className="block text-[11px] text-azul">{cliente}</span>}
       </Celula>
 
       <Celula>
@@ -47,10 +47,10 @@ export function LinhaRadar({
 
       <Celula>
         {dominio.expira_em ? (
-          <span className={perto ? 'text-alerta' : undefined}>
+          <span className={perto ? 'text-ambar' : undefined}>
             {formatData(dominio.expira_em)}
             {dias !== null && (
-              <span className="block text-[11px] text-apagado">
+              <span className="block text-[11px] text-tenue">
                 {dias < 0 ? 'já passou' : `em ${dias} dia(s)`}
               </span>
             )}
@@ -61,11 +61,11 @@ export function LinhaRadar({
       </Celula>
 
       <Celula>
-        <span className="text-[11px] text-apagado">{dominio.registrador ?? '—'}</span>
+        <span className="text-[11px] text-tenue">{dominio.registrador ?? '—'}</span>
       </Celula>
 
       <Celula>
-        <span className="text-[11px] text-apagado">
+        <span className="text-[11px] text-tenue">
           {dominio.checado_em ? formatData(dominio.checado_em) : 'nunca'}
         </span>
       </Celula>
@@ -75,7 +75,7 @@ export function LinhaRadar({
           <button
             type="button"
             disabled={pendente}
-            className="text-nevoa hover:text-marfim disabled:opacity-50"
+            className="text-suave hover:text-pleno disabled:opacity-50"
             onClick={() =>
               iniciar(async () => {
                 setErro(null)
@@ -90,7 +90,7 @@ export function LinhaRadar({
           <button
             type="button"
             disabled={pendente}
-            className="text-apagado hover:text-marfim disabled:opacity-50"
+            className="text-tenue hover:text-pleno disabled:opacity-50"
             onClick={() =>
               iniciar(async () => {
                 await alternarRadar(dominio.id, !dominio.ativo)
@@ -101,7 +101,7 @@ export function LinhaRadar({
             {dominio.ativo ? 'Pausar' : 'Retomar'}
           </button>
         </div>
-        {erro && <p className="text-right text-[11px] text-critico">! {erro}</p>}
+        {erro && <p className="text-right text-[11px] text-magenta">! {erro}</p>}
       </Celula>
     </Linha>
   )

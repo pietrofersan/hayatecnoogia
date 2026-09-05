@@ -53,7 +53,7 @@ export function FormSegmento({
             </div>
 
             {estado && !estado.ok && (
-              <p className="mt-4 text-xs text-critico">! {estado.erro}</p>
+              <p className="mt-4 text-xs text-magenta">! {estado.erro}</p>
             )}
 
             <div className="mt-5 flex gap-2">

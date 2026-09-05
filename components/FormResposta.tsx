@@ -25,7 +25,7 @@ export function FormResposta({
   return (
     <div className="space-y-2">
       {janelaExpirada && (
-        <p className="rounded-lg border border-critico/40 bg-critico/10 px-3 py-2 text-xs text-critico">
+        <p className="rounded-lg border border-magenta/40 bg-magenta/10 px-3 py-2 text-xs text-magenta">
           Fora da janela de 24h do WhatsApp. Quando o canal estiver conectado,
           reabrir a conversa vai exigir um template aprovado — regra da Meta,
           não nossa.
@@ -37,12 +37,12 @@ export function FormResposta({
         onChange={(e) => setCorpo(e.target.value)}
         rows={3}
         placeholder="Escreva a resposta…"
-        className="w-full resize-y rounded-lg border border-linha bg-noite px-3 py-2 text-sm text-marfim outline-none placeholder:text-apagado focus:border-tec"
+        className="w-full resize-y rounded-lg border border-borda bg-abismo px-3 py-2 text-sm text-pleno outline-none placeholder:text-tenue focus:border-azul"
       />
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[11px] text-apagado">
-          Fica salva como <span className="text-nevoa">na fila</span> — a entrega
+        <p className="text-[11px] text-tenue">
+          Fica salva como <span className="text-suave">na fila</span> — a entrega
           depende do adaptador do canal, que ainda não existe.
         </p>
         <Botao
@@ -63,7 +63,7 @@ export function FormResposta({
         </Botao>
       </div>
 
-      {erro && <p className="text-xs text-critico">! {erro}</p>}
+      {erro && <p className="text-xs text-magenta">! {erro}</p>}
     </div>
   )
 }

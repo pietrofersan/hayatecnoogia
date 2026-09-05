@@ -39,12 +39,12 @@ export default async function Dominios() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-marfim">Radar de domínios</h1>
-          <p className="text-sm text-apagado">
+          <h1 className="text-xl font-semibold text-pleno">Radar de domínios</h1>
+          <p className="text-sm text-tenue">
             Acompanhamento contínuo por RDAP — o cron reconsulta todo dia às 9h e
             avisa quando um domínio fica livre.
             {livres > 0 && (
-              <span className="text-ok"> {livres} livre(s) agora.</span>
+              <span className="text-verde"> {livres} livre(s) agora.</span>
             )}
           </p>
         </div>
@@ -76,16 +76,16 @@ export default async function Dominios() {
           <ul className="space-y-1 text-sm">
             {historico.map((e) => (
               <li key={e.id} className="flex justify-between gap-3">
-                <span className="text-ink-2">
+                <span className="text-corpo">
                   {e.dominios_radar?.dominio ?? '—'}{' '}
-                  <span className="text-apagado">
+                  <span className="text-tenue">
                     {e.de ? ROTULO_ESTADO_DOMINIO[e.de] : '—'} →{' '}
                   </span>
-                  <span className={e.para === 'livre' ? 'text-ok' : 'text-nevoa'}>
+                  <span className={e.para === 'livre' ? 'text-verde' : 'text-suave'}>
                     {ROTULO_ESTADO_DOMINIO[e.para]}
                   </span>
                 </span>
-                <span className="shrink-0 text-xs text-apagado">{formatData(e.em)}</span>
+                <span className="shrink-0 text-xs text-tenue">{formatData(e.em)}</span>
               </li>
             ))}
           </ul>

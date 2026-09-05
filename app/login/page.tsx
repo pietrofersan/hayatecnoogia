@@ -1,5 +1,48 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { supabaseServidor } from '@/lib/supabase'
+import { CAMPO, PainelAcesso, Rotulo } from '@/components/PainelAcesso'
+import { supabaseAdmin, supabaseServidor } from '@/lib/supabase'
+
+export const dynamic = 'force-dynamic'
+
+/**
+ * Números da coluna da marca. São reais: contagem de palavras medidas,
+ * segmentos ativos e horário da última checagem do radar. Se o banco não
+ * responder (ou a env de serviço faltar), a faixa some — nunca inventamos.
+ */
+async function metricas() {
+  try {
+    const db = supabaseAdmin()
+    const [palavras, segmentos, ultima] = await Promise.all([
+      db.from('palavras_chave').select('id', { count: 'exact', head: true }),
+      db.from('segmentos').select('id', { count: 'exact', head: true }),
+      db
+        .from('dominios_radar')
+        .select('checado_em')
+        .not('checado_em', 'is', null)
+        .order('checado_em', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ])
+
+    const hora = ultima.data?.checado_em
+      ? new Date(ultima.data.checado_em).toLocaleTimeString('pt-BR', {
+          hour: '2-digit',
+          minute: '2-digit',
+          timeZone: 'America/Sao_Paulo',
+        })
+      : null
+
+    const lista = [
+      { valor: (palavras.count ?? 0).toLocaleString('pt-BR'), rotulo: 'palavras medidas' },
+      { valor: String(segmentos.count ?? 0), rotulo: 'segmentos ativos' },
+    ]
+    if (hora) lista.push({ valor: hora, rotulo: 'última coleta' })
+    return lista
+  } catch {
+    return undefined
+  }
+}
 
 export default async function Login({
   searchParams,
@@ -21,50 +64,73 @@ export default async function Login({
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-6">
-      <form
-        action={entrar}
-        className="w-full max-w-sm rounded-xl border border-linha bg-painel p-8"
-      >
-        <p className="text-sm font-semibold tracking-[0.2em] text-marfim">HAYA</p>
-        <p className="mb-8 text-[10px] tracking-[0.3em] text-apagado uppercase">
-          Master
-        </p>
+    <PainelAcesso metricas={await metricas()}>
+      <p className="font-mono text-[10px] tracking-[0.34em] text-ciano uppercase">
+        Acesso restrito
+      </p>
+      <h2 className="mt-3 text-[21px] font-semibold text-pleno">Entrar no painel</h2>
 
+      <form action={entrar} className="mt-7">
         <input type="hidden" name="proximo" value={proximo} />
 
-        <label className="mb-1 block text-[11px] tracking-wide text-nevoa uppercase">
-          E-mail
+        <label className="block">
+          <Rotulo>E-mail</Rotulo>
+          <input
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            className={CAMPO}
+          />
         </label>
-        <input
-          name="email"
-          type="email"
-          required
-          autoComplete="email"
-          className="mb-4 w-full rounded-lg border border-linha bg-noite px-3 py-2 text-sm text-marfim outline-none focus:border-tec"
-        />
 
-        <label className="mb-1 block text-[11px] tracking-wide text-nevoa uppercase">
-          Senha
+        <label className="mt-4 block">
+          <Rotulo>Senha</Rotulo>
+          <input
+            name="senha"
+            type="password"
+            required
+            minLength={8}
+            autoComplete="current-password"
+            className={CAMPO}
+          />
         </label>
-        <input
-          name="senha"
-          type="password"
-          required
-          autoComplete="current-password"
-          className="mb-6 w-full rounded-lg border border-linha bg-noite px-3 py-2 text-sm text-marfim outline-none focus:border-tec"
-        />
+
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <label className="flex cursor-pointer items-center gap-2 text-[11.5px] text-suave">
+            <input
+              type="checkbox"
+              name="manter"
+              defaultChecked
+              className="size-3.5 accent-ciano"
+            />
+            Manter conectado
+          </label>
+          <Link
+            href="/login?recuperar=1"
+            className="text-[11.5px] text-tenue hover:text-corpo"
+          >
+            Esqueci a senha
+          </Link>
+        </div>
 
         {erro && (
-          <p className="mb-4 text-xs text-critico">
+          <p
+            role="alert"
+            className="mt-4 rounded-ctrl border border-magenta/40 bg-magenta/10 px-3 py-2 text-[11.5px] text-magenta-claro"
+          >
             ! Não foi possível entrar. Verifique e-mail e senha.
           </p>
         )}
 
-        <button className="w-full rounded-lg bg-tec py-2 text-sm font-medium text-noite transition-opacity hover:opacity-90">
+        <button className="mt-6 min-h-[52px] w-full cursor-pointer rounded-btn bg-linear-to-r from-ciano to-azul text-[13px] font-semibold text-abismo shadow-glow-ciano transition hover:brightness-110 md:min-h-[46px]">
           Entrar
         </button>
       </form>
-    </div>
+
+      <p className="mt-8 font-mono text-[10px] leading-relaxed text-fantasma">
+        Sessão registrada em webhook_logs · 2FA obrigatório para perfis admin.
+      </p>
+    </PainelAcesso>
   )
 }

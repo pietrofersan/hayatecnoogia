@@ -27,7 +27,7 @@ export function BotaoChecarRadar() {
       >
         {pendente ? 'Checando…' : '↻ Checar todos'}
       </Botao>
-      {erro && <p className="mt-1 text-xs text-critico">! {erro}</p>}
+      {erro && <p className="mt-1 text-xs text-magenta">! {erro}</p>}
     </div>
   )
 }

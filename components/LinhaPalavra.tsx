@@ -31,7 +31,7 @@ function ChipDominio({
 }) {
   if (!checagem || checagem.disponivel === null) {
     return (
-      <span className="rounded border border-linha px-1.5 py-0.5 text-[10px] text-apagado">
+      <span className="rounded border border-borda px-1.5 py-0.5 text-[10px] text-tenue">
         .{extensao}
       </span>
     )
@@ -43,8 +43,8 @@ function ChipDominio({
       disabled={vigiando}
       className={`rounded border px-1.5 py-0.5 text-[10px] disabled:opacity-50 ${
         checagem.disponivel
-          ? 'border-ok/40 text-ok hover:bg-ok/10'
-          : 'border-critico/40 text-critico hover:bg-critico/10'
+          ? 'border-verde/40 text-verde hover:bg-verde/10'
+          : 'border-magenta/40 text-magenta hover:bg-magenta/10'
       }`}
       title={`${checagem.disponivel ? 'Domínio livre' : 'Domínio registrado'} — clique para vigiar no radar`}
     >
@@ -83,7 +83,7 @@ export function LinhaPalavra({
           }
           disabled={marcando}
           title={interessante ? 'Desmarcar interessante' : 'Marcar como interessante'}
-          className={interessante ? 'text-ouro' : 'text-apagado hover:text-nevoa'}
+          className={interessante ? 'text-ambar' : 'text-tenue hover:text-suave'}
         >
           {interessante ? '★' : '☆'}
         </button>
@@ -93,11 +93,11 @@ export function LinhaPalavra({
         {palavra.tendencia ? (
           ROTULO_TENDENCIA[palavra.tendencia]
         ) : (
-          <span className="text-apagado">aguardando</span>
+          <span className="text-tenue">aguardando</span>
         )}
       </Celula>
       <Celula numerica>
-        {palavra.volume ?? <span className="text-apagado">aguardando</span>}
+        {palavra.volume ?? <span className="text-tenue">aguardando</span>}
       </Celula>
       <Celula>
         <div className="flex flex-wrap items-center gap-1.5">
@@ -127,11 +127,11 @@ export function LinhaPalavra({
               })
             }
             disabled={checando}
-            className="ml-1 text-[10px] text-tec hover:underline disabled:opacity-50"
+            className="ml-1 text-[10px] text-azul hover:underline disabled:opacity-50"
           >
             {checando ? 'checando…' : 'checar'}
           </button>
-          {aviso && <span className="text-[10px] text-apagado">{aviso}</span>}
+          {aviso && <span className="text-[10px] text-tenue">{aviso}</span>}
         </div>
       </Celula>
     </Linha>

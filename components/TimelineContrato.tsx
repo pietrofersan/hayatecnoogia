@@ -24,8 +24,8 @@ export function TimelineContrato({ status }: { status: StatusContrato }) {
               <span
                 className={`grid size-5 place-items-center rounded-full border text-[10px] ${
                   concluida
-                    ? 'border-tec bg-tec text-noite'
-                    : 'border-linha text-apagado'
+                    ? 'border-azul bg-azul text-abismo'
+                    : 'border-borda text-tenue'
                 }`}
                 aria-hidden
               >
@@ -33,7 +33,7 @@ export function TimelineContrato({ status }: { status: StatusContrato }) {
               </span>
               <span
                 className={`text-[10px] whitespace-nowrap ${
-                  concluida ? 'text-ink-2' : 'text-apagado'
+                  concluida ? 'text-corpo' : 'text-tenue'
                 }`}
               >
                 {etapa.rotulo}
@@ -41,7 +41,7 @@ export function TimelineContrato({ status }: { status: StatusContrato }) {
             </div>
             {i < ETAPAS.length - 1 && (
               <span
-                className={`mb-4 h-px flex-1 ${i < indiceAtual ? 'bg-tec' : 'bg-linha'}`}
+                className={`mb-4 h-px flex-1 ${i < indiceAtual ? 'bg-azul' : 'bg-borda'}`}
               />
             )}
           </li>

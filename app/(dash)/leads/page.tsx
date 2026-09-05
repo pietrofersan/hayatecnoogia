@@ -36,8 +36,8 @@ export default async function Leads({
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-xl font-semibold text-marfim">Leads</h1>
-        <p className="text-sm text-apagado">
+        <h1 className="text-xl font-semibold text-pleno">Leads</h1>
+        <p className="text-sm text-tenue">
           {leads.length} no filtro · {naoLidos} não lido(s)
         </p>
       </header>
@@ -46,7 +46,7 @@ export default async function Leads({
         <select
           name="cliente"
           defaultValue={f.cliente ?? ''}
-          className="rounded-lg border border-linha bg-painel px-3 py-2 text-ink-2 outline-none focus:border-tec"
+          className="rounded-lg border border-borda bg-vidro px-3 py-2 text-corpo outline-none focus:border-azul"
         >
           <option value="">Todos os clientes</option>
           {((clientes ?? []) as Pick<Cliente, 'id' | 'nome'>[]).map((c) => (
@@ -58,16 +58,16 @@ export default async function Leads({
         <select
           name="estado"
           defaultValue={f.estado ?? ''}
-          className="rounded-lg border border-linha bg-painel px-3 py-2 text-ink-2 outline-none focus:border-tec"
+          className="rounded-lg border border-borda bg-vidro px-3 py-2 text-corpo outline-none focus:border-azul"
         >
           <option value="">Todos</option>
           <option value="novos">Não lidos</option>
           <option value="abertos">Não respondidos</option>
         </select>
-        <button className="rounded-lg border border-linha px-3 py-2 text-ink-2 hover:border-nevoa hover:text-marfim">
+        <button className="rounded-lg border border-borda px-3 py-2 text-corpo hover:border-suave hover:text-pleno">
           Filtrar
         </button>
-        <Link href="/leads" className="rounded-lg px-3 py-2 text-apagado hover:text-ink-2">
+        <Link href="/leads" className="rounded-lg px-3 py-2 text-tenue hover:text-corpo">
           Limpar
         </Link>
       </form>
@@ -81,26 +81,26 @@ export default async function Leads({
           {leads.map((l) => (
             <article
               key={l.id}
-              className={`rounded-xl border bg-painel p-5 ${
-                l.lido ? 'border-linha' : 'border-dig/40'
+              className={`rounded-xl border bg-vidro p-5 ${
+                l.lido ? 'border-borda' : 'border-magenta/40'
               }`}
             >
               <header className="flex flex-wrap items-baseline justify-between gap-2">
                 <div>
-                  <h2 className="text-sm font-medium text-marfim">
+                  <h2 className="text-sm font-medium text-pleno">
                     {l.nome ?? 'Sem nome'}
                     {!l.lido && (
-                      <span className="ml-2 rounded bg-dig/15 px-1.5 py-0.5 text-[10px] text-dig">
+                      <span className="ml-2 rounded bg-magenta/15 px-1.5 py-0.5 text-[10px] text-magenta">
                         NOVO
                       </span>
                     )}
                     {l.respondido && (
-                      <span className="ml-2 rounded bg-ok/15 px-1.5 py-0.5 text-[10px] text-ok">
+                      <span className="ml-2 rounded bg-verde/15 px-1.5 py-0.5 text-[10px] text-verde">
                         RESPONDIDO
                       </span>
                     )}
                   </h2>
-                  <p className="text-xs text-apagado">
+                  <p className="text-xs text-tenue">
                     {l.clientes?.nome ?? 'sem cliente'} · {l.site ?? '—'} ·{' '}
                     {formatData(l.criado_em)}
                   </p>
@@ -108,13 +108,13 @@ export default async function Leads({
                 <AcoesLead lead={l} />
               </header>
 
-              <p className="mt-3 text-sm text-ink-2">
+              <p className="mt-3 text-sm text-corpo">
                 {[l.email, l.telefone].filter(Boolean).join(' · ') || 'sem contato informado'}
               </p>
               {l.mensagem && (
-                <p className="mt-2 text-sm whitespace-pre-wrap text-ink-2">{l.mensagem}</p>
+                <p className="mt-2 text-sm whitespace-pre-wrap text-corpo">{l.mensagem}</p>
               )}
-              <p className="mt-3 text-[11px] text-apagado">
+              <p className="mt-3 text-[11px] text-tenue">
                 LGPD: consentimento {l.consentimento ? 'registrado ✓' : 'ausente !'}
                 {l.origem ? ` · origem ${JSON.stringify(l.origem)}` : ''}
               </p>
